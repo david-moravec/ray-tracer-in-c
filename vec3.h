@@ -17,7 +17,7 @@ typedef struct {
 
 } Vec3;
 
-inline Vec3 vec3_add(const Vec3 v1, const Vec3 v2) {
+static inline Vec3 vec3_add(const Vec3 v1, const Vec3 v2) {
   Vec3 result;
 
   result.x = v1.x + v2.x;
@@ -27,7 +27,7 @@ inline Vec3 vec3_add(const Vec3 v1, const Vec3 v2) {
   return result;
 }
 
-inline Vec3 vec3_subtract(const Vec3 v1, const Vec3 v2) {
+static inline Vec3 vec3_subtract(const Vec3 v1, const Vec3 v2) {
   Vec3 result;
 
   result.x = v1.x - v2.x;
@@ -37,7 +37,7 @@ inline Vec3 vec3_subtract(const Vec3 v1, const Vec3 v2) {
   return result;
 }
 
-inline Vec3 vec3_multiply(const Vec3 v1, const Vec3 v2) {
+static inline Vec3 vec3_multiply(const Vec3 v1, const Vec3 v2) {
   Vec3 result;
 
   result.x = v1.x * v2.x;
@@ -47,7 +47,7 @@ inline Vec3 vec3_multiply(const Vec3 v1, const Vec3 v2) {
   return result;
 }
 
-inline Vec3 vec3_devide(const Vec3 v1, const Vec3 v2) {
+static inline Vec3 vec3_devide(const Vec3 v1, const Vec3 v2) {
   Vec3 result;
 
   result.x = v1.x / v2.x;
@@ -57,7 +57,7 @@ inline Vec3 vec3_devide(const Vec3 v1, const Vec3 v2) {
   return result;
 }
 
-inline Vec3 vec3_negative(const Vec3 v1) {
+static inline Vec3 vec3_negative(const Vec3 v1) {
   Vec3 result;
   result.x = -v1.x;
   result.y = -v1.y;
@@ -66,43 +66,45 @@ inline Vec3 vec3_negative(const Vec3 v1) {
   return result;
 }
 
-inline void vec3_add_mut(Vec3 *v1, const Vec3 v2) {
+static inline void vec3_add_mut(Vec3 *v1, const Vec3 v2) {
   v1->x += v2.x;
   v1->y += v2.y;
   v1->z += v2.z;
 }
 
-inline void vec3_subtract_mut(Vec3 *v1, const Vec3 v2) {
+static inline void vec3_subtract_mut(Vec3 *v1, const Vec3 v2) {
   v1->x -= v2.x;
   v1->y -= v2.y;
   v1->z -= v2.z;
 }
 
-inline void vec3_multiply_mut(Vec3 *v1, const Vec3 v2) {
+static inline void vec3_multiply_mut(Vec3 *v1, const Vec3 v2) {
   v1->x *= v2.x;
   v1->y *= v2.y;
   v1->z *= v2.z;
 }
 
-inline void vec3_devide_mut(Vec3 *v1, const Vec3 v2) {
+static inline void vec3_devide_mut(Vec3 *v1, const Vec3 v2) {
   v1->x /= v2.x;
   v1->y /= v2.y;
   v1->z /= v2.z;
 }
 
-inline double vec3_length_squared(const Vec3 v) {
+static inline double vec3_length_squared(const Vec3 v) {
   return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
-inline double vec3_length(const Vec3 v) { return sqrt(vec3_length_squared(v)); }
+static inline double vec3_length(const Vec3 v) {
+  return sqrt(vec3_length_squared(v));
+}
 
 typedef Vec3 Point3;
 
-inline void vec3_printf(FILE *f, const Vec3 v) {
+static inline void vec3_printf(FILE *f, const Vec3 v) {
   fprintf(f, "(%.6f, %.6f, %.6f)", v.e[0], v.e[1], v.e[2]);
 }
 
-inline Vec3 vec3_scalar_add(const Vec3 v, const double t) {
+static inline Vec3 vec3_scalar_add(const Vec3 v, const double t) {
   Vec3 result;
   result.x = v.x + t;
   result.y = v.y + t;
@@ -111,7 +113,7 @@ inline Vec3 vec3_scalar_add(const Vec3 v, const double t) {
   return result;
 }
 
-inline Vec3 vec3_scalar_subtract(const Vec3 v, const double t) {
+static inline Vec3 vec3_scalar_subtract(const Vec3 v, const double t) {
   Vec3 result;
   result.x = v.x - t;
   result.y = v.y - t;
@@ -120,7 +122,7 @@ inline Vec3 vec3_scalar_subtract(const Vec3 v, const double t) {
   return result;
 }
 
-inline Vec3 vec3_scalar_devide(const Vec3 v, const double t) {
+static inline Vec3 vec3_scalar_devide(const Vec3 v, const double t) {
   Vec3 result;
   result.x = v.x / t;
   result.y = v.y / t;
@@ -128,7 +130,7 @@ inline Vec3 vec3_scalar_devide(const Vec3 v, const double t) {
 
   return result;
 }
-inline Vec3 vec3_scalar_multiply(const Vec3 v, const double t) {
+static inline Vec3 vec3_scalar_multiply(const Vec3 v, const double t) {
   Vec3 result;
   result.x = v.x * t;
   result.y = v.y * t;
@@ -137,16 +139,20 @@ inline Vec3 vec3_scalar_multiply(const Vec3 v, const double t) {
   return result;
 }
 
-inline double vec3_dot_product(const Vec3 v1, const Vec3 v2) {
+static inline double vec3_dot_product(const Vec3 v1, const Vec3 v2) {
   return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
-inline Vec3 vec3_cross_product(const Vec3 v1, const Vec3 v2) {
+static inline Vec3 vec3_cross_product(const Vec3 v1, const Vec3 v2) {
   Vec3 result;
   result.x = v1.y * v2.z - v1.z * v2.y;
   result.y = v1.z * v2.x - v1.x * v2.z;
   result.z = v1.x * v2.y - v1.y * v2.x;
   return result;
+}
+
+static inline Vec3 vec3_unit_vector(const Vec3 v) {
+  return vec3_scalar_devide(v, vec3_length(v));
 }
 
 #endif

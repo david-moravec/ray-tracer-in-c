@@ -6,7 +6,7 @@
 
 typedef Vec3 Color;
 
-void color_fprint(FILE *f, const Color *color) {
+static inline void color_fprint(FILE *f, const Color *color) {
   double r = color->x;
   double g = color->y;
   double b = color->z;
