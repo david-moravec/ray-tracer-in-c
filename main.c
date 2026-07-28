@@ -3,6 +3,7 @@
 #include "stdio.h"
 
 #include "color.h"
+#include "math.h"
 #include "ray.h"
 #include "vec3.h"
 
@@ -12,7 +13,7 @@ typedef uint16_t u16;
 
 const double ASPECT_RATIO = 16.0 / 9.0;
 
-bool ray_hits_sphere(const Ray ray, const Point3 center, double r) {
+double ray_hit_sphere(const Ray ray, const Point3 center, double r) {
   Vec3 origin_to_center = vec3_subtract(center, ray.origin);
 
   double a = vec3_dot_product(ray.direction, ray.direction);
@@ -20,12 +21,20 @@ bool ray_hits_sphere(const Ray ray, const Point3 center, double r) {
   double c = vec3_dot_product(origin_to_center, origin_to_center) - r * r;
   double discriminant = b * b - 4 * a * c;
 
-  return (discriminant >= 0);
+  if (discriminant < 0) {
+    return -1.0;
+  } else {
+    return (-b - sqrt(discriminant)) / (2.0 * a);
+  }
 }
 
 Color ray_color(const Ray r) {
-  if (ray_hits_sphere(r, (Point3){.x = 0.0, .y = 0.0, .z = -1.0}, 0.5)) {
-    return (Color){.x = 1.0, .y = 0.0, .z = 0.0};
+  double t = ray_hit_sphere(r, (Point3){.x = 0.0, .y = 0.0, .z = -1.0}, 0.5);
+  if (t > 0.0) {
+    Vec3 n = vec3_unit_vector(
+        vec3_subtract(ray_at(r, t), (Vec3){.x = 0, .y = 0, .z = -1}));
+    return vec3_scalar_multiply(
+        (Color){.x = n.x + 1.0, .y = n.y + 1, .z = n.z + 1}, 0.5);
   }
 
   Vec3 unit_direction = vec3_unit_vector(r.direction);

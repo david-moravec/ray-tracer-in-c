@@ -8,8 +8,8 @@ typedef struct {
   Point3 direction;
 } Ray;
 
-static inline Point3 ray_at(const Ray *ray, double t) {
-  return vec3_add(ray->origin, vec3_scalar_multiply(ray->direction, t));
+static inline Point3 ray_at(const Ray ray, double t) {
+  return vec3_add(ray.origin, vec3_scalar_multiply(ray.direction, t));
 }
 
 #endif
