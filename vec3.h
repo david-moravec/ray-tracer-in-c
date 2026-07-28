@@ -155,4 +155,12 @@ static inline Vec3 vec3_unit_vector(const Vec3 v) {
   return vec3_scalar_devide(v, vec3_length(v));
 }
 
+static inline Vec3 vec3_new(double x, double y, double z) {
+  return (Vec3){.x = x, .y = y, .z = z};
+}
+
+static inline Point3 point3_new(double x, double y, double z) {
+  return vec3_new(x, y, z);
+}
+
 #endif

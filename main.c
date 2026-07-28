@@ -29,18 +29,17 @@ double ray_hit_sphere(const Ray ray, const Point3 center, double r) {
 }
 
 Color ray_color(const Ray r) {
-  double t = ray_hit_sphere(r, (Point3){.x = 0.0, .y = 0.0, .z = -1.0}, 0.5);
+  double t = ray_hit_sphere(r, point3_new(0.0, 0.0, -1.0), 0.5);
   if (t > 0.0) {
     Vec3 n = vec3_unit_vector(
         vec3_subtract(ray_at(r, t), (Vec3){.x = 0, .y = 0, .z = -1}));
-    return vec3_scalar_multiply(
-        (Color){.x = n.x + 1.0, .y = n.y + 1, .z = n.z + 1}, 0.5);
+    return vec3_scalar_multiply(color_new(n.x + 1.0, n.y + 1, n.z + 1), 0.5);
   }
 
   Vec3 unit_direction = vec3_unit_vector(r.direction);
   double a = 0.5 * (unit_direction.y + 1.0);
-  Color blue = {.x = 0.6, .y = 0.7, .z = 1.0};
-  Color white = {.x = 1.0, .y = 1.0, .z = 1.0};
+  Color blue = color_new(0.6, 0.7, 1.0);
+  Color white = color_new(1.0, 1.0, 1.0);
 
   return vec3_add(vec3_scalar_multiply(white, (1.0 - a)),
                   vec3_scalar_multiply(blue, a));
@@ -58,16 +57,16 @@ int main() {
   f64 viewport_height = 2.0;
   f64 viewport_width =
       viewport_height * ((f64)(image_width) / (f64)image_height);
-  Point3 camera_center = {.x = 0, .y = 0, .z = 0};
+  Point3 camera_center = point3_new(0.0, 0.0, 0.0);
 
-  Vec3 viewport_u = {.x = viewport_width, .y = 0, .z = 0};
-  Vec3 viewport_v = {.x = 0, .y = -viewport_height, .z = 0};
+  Vec3 viewport_u = vec3_new(viewport_width, 0, 0);
+  Vec3 viewport_v = vec3_new(0, -viewport_height, 0);
 
   Vec3 pixel_delta_u = vec3_scalar_devide(viewport_u, image_width);
   Vec3 pixel_delta_v = vec3_scalar_devide(viewport_v, image_height);
 
   Vec3 viewport_center =
-      vec3_subtract(camera_center, (Vec3){.x = 0, .y = 0, .z = focal_length});
+      vec3_subtract(camera_center, vec3_new(0.0, 0.0, focal_length));
   Vec3 upper_left_offset = vec3_add(vec3_scalar_devide(viewport_u, 2),
                                     vec3_scalar_devide(viewport_v, 2));
   Vec3 viewport_upper_left = vec3_subtract(viewport_center, upper_left_offset);
@@ -84,8 +83,8 @@ int main() {
       Vec3 pixel_offset = vec3_add(vec3_scalar_multiply(pixel_delta_u, i),
                                    vec3_scalar_multiply(pixel_delta_v, j));
       Point3 pixel_location = vec3_add(top_left_pixel_loc, pixel_offset);
-      const Ray r = {.origin = camera_center,
-                     .direction = vec3_subtract(pixel_location, camera_center)};
+      const Ray r =
+          ray_new(camera_center, vec3_subtract(pixel_location, camera_center));
 
       Color pixel_color = ray_color(r);
 

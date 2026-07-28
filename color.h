@@ -6,6 +6,10 @@
 
 typedef Vec3 Color;
 
+static inline Color color_new(double x, double y, double z) {
+  return vec3_new(x, y, z);
+}
+
 static inline void color_fprint(FILE *f, const Color *color) {
   double r = color->x;
   double g = color->y;
