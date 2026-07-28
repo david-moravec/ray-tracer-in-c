@@ -1,6 +1,6 @@
+#include "stdbool.h"
 #include "stdint.h"
 #include "stdio.h"
-#include <stdint.h>
 
 #include "color.h"
 #include "ray.h"
@@ -12,8 +12,23 @@ typedef uint16_t u16;
 
 const double ASPECT_RATIO = 16.0 / 9.0;
 
-Color ray_color(const Ray *r) {
-  Vec3 unit_direction = vec3_unit_vector(r->direction);
+bool ray_hits_sphere(const Ray ray, const Point3 center, double r) {
+  Vec3 origin_to_center = vec3_subtract(center, ray.origin);
+
+  double a = vec3_dot_product(ray.direction, ray.direction);
+  double b = -2.0 * vec3_dot_product(ray.direction, origin_to_center);
+  double c = vec3_dot_product(origin_to_center, origin_to_center) - r * r;
+  double discriminant = b * b - 4 * a * c;
+
+  return (discriminant >= 0);
+}
+
+Color ray_color(const Ray r) {
+  if (ray_hits_sphere(r, (Point3){.x = 0.0, .y = 0.0, .z = -1.0}, 0.5)) {
+    return (Color){.x = 1.0, .y = 0.0, .z = 0.0};
+  }
+
+  Vec3 unit_direction = vec3_unit_vector(r.direction);
   double a = 0.5 * (unit_direction.y + 1.0);
   Color blue = {.x = 0.6, .y = 0.7, .z = 1.0};
   Color white = {.x = 1.0, .y = 1.0, .z = 1.0};
@@ -63,7 +78,7 @@ int main() {
       const Ray r = {.origin = camera_center,
                      .direction = vec3_subtract(pixel_location, camera_center)};
 
-      Color pixel_color = ray_color(&r);
+      Color pixel_color = ray_color(r);
 
       color_fprint(stdout, &pixel_color);
     }
