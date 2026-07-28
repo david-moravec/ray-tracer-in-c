@@ -16,15 +16,15 @@ const double ASPECT_RATIO = 16.0 / 9.0;
 double ray_hit_sphere(const Ray ray, const Point3 center, double r) {
   Vec3 origin_to_center = vec3_subtract(center, ray.origin);
 
-  double a = vec3_dot_product(ray.direction, ray.direction);
-  double b = -2.0 * vec3_dot_product(ray.direction, origin_to_center);
-  double c = vec3_dot_product(origin_to_center, origin_to_center) - r * r;
-  double discriminant = b * b - 4 * a * c;
+  double a = vec3_length_squared(ray.direction);
+  double h = vec3_dot_product(ray.direction, origin_to_center);
+  double c = vec3_length_squared(origin_to_center) - r * r;
+  double discriminant = h * h - a * c;
 
   if (discriminant < 0) {
     return -1.0;
   } else {
-    return (-b - sqrt(discriminant)) / (2.0 * a);
+    return (h - sqrt(discriminant)) / a;
   }
 }
 
