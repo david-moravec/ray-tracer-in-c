@@ -9,6 +9,7 @@ typedef struct {
   Point3 p;
   Vec3 normal;
   double t;
+  bool front_face;
 } HitRecord;
 
 enum HittableType { RAYTRACER_HITTABLE_SPHERE };
@@ -26,6 +27,16 @@ typedef struct {
 static inline Hittable hittable_sphere_new(Point3 center, double radius) {
   return (Hittable){
       .type = RAYTRACER_HITTABLE_SPHERE, .center = center, .r = radius};
+}
+
+static inline void hit_record_set_face_normal(HitRecord *record, const Ray ray,
+                                              const Vec3 outward_normal) {
+#ifdef DEBUG
+  assert(fabs(vec3_length_squared(outward_normal) - 1.0) < 1e-12);
+#endif
+  record->front_face = vec3_dot_product(ray.direction, outward_normal) < 0;
+  record->normal =
+      record->front_face ? outward_normal : vec3_negative(outward_normal);
 }
 
 static inline bool hittable_sphere_hit(Hittable hittable, const Ray ray,
@@ -56,8 +67,9 @@ static inline bool hittable_sphere_hit(Hittable hittable, const Ray ray,
 
   record->t = root;
   record->p = ray_at(ray, root);
-  record->normal =
+  Vec3 outward_normal =
       vec3_scalar_devide(vec3_subtract(record->p, hittable.center), hittable.r);
+  hit_record_set_face_normal(record, ray, outward_normal);
 
   return true;
 }
