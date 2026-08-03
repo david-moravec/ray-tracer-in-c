@@ -1,10 +1,10 @@
+#include "base/include/arena.h"
+#include "color.h"
 #include "stdbool.h"
 #include "stdint.h"
 #include "stdio.h"
 
-#include "color.h"
-#include "math.h"
-#include "ray.h"
+#include "hittable.h"
 #include "vec3.h"
 
 typedef float f32;
@@ -13,30 +13,14 @@ typedef uint16_t u16;
 
 const double ASPECT_RATIO = 16.0 / 9.0;
 
-double ray_hit_sphere(const Ray ray, const Point3 center, double r) {
-  Vec3 origin_to_center = vec3_subtract(center, ray.origin);
-
-  double a = vec3_length_squared(ray.direction);
-  double h = vec3_dot_product(ray.direction, origin_to_center);
-  double c = vec3_length_squared(origin_to_center) - r * r;
-  double discriminant = h * h - a * c;
-
-  if (discriminant < 0) {
-    return -1.0;
-  } else {
-    return (h - sqrt(discriminant)) / a;
-  }
-}
-
-Color ray_color(const Ray r) {
-  double t = ray_hit_sphere(r, point3_new(0.0, 0.0, -1.0), 0.5);
-  if (t > 0.0) {
-    Vec3 n = vec3_unit_vector(
-        vec3_subtract(ray_at(r, t), (Vec3){.x = 0, .y = 0, .z = -1}));
-    return vec3_scalar_multiply(color_new(n.x + 1.0, n.y + 1, n.z + 1), 0.5);
+Color ray_color(const Ray ray, const Hittable *world) {
+  HitRecord record;
+  if (hittable_hit(world, ray, 0, INFINITY, &record)) {
+    return vec3_scalar_multiply(
+        vec3_add(color_new(1.0, 1.0, 1.0), record.normal), 0.5);
   }
 
-  Vec3 unit_direction = vec3_unit_vector(r.direction);
+  Vec3 unit_direction = vec3_unit_vector(ray.direction);
   double a = 0.5 * (unit_direction.y + 1.0);
   Color blue = color_new(0.6, 0.7, 1.0);
   Color white = color_new(1.0, 1.0, 1.0);
@@ -46,12 +30,21 @@ Color ray_color(const Ray r) {
 }
 
 int main() {
+  Arena *arena = arena_alloc(1 << 20, 0);
   char buff[BUFSIZ];
   setvbuf(stderr, buff, _IOFBF, BUFSIZ);
 
   u16 image_width = 400;
   u16 image_height = (u16)(image_width / ASPECT_RATIO);
   image_height = (image_height < 1) ? 1 : image_height;
+
+  Hittable world = hittable_collection_new(arena);
+
+  hittable_list_add((HittableList *)world.collection,
+                    hittable_sphere_new(point3_new(0.0, 0.0, -1.0), 0.5));
+
+  hittable_list_add((HittableList *)world.collection,
+                    hittable_sphere_new(point3_new(0.0, -100.5, -1.0), 100));
 
   f64 focal_length = 1.0;
   f64 viewport_height = 2.0;
@@ -86,7 +79,7 @@ int main() {
       const Ray r =
           ray_new(camera_center, vec3_subtract(pixel_location, camera_center));
 
-      Color pixel_color = ray_color(r);
+      Color pixel_color = ray_color(r, &world);
 
       color_fprint(stdout, &pixel_color);
     }
