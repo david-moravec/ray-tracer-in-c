@@ -21,6 +21,7 @@ typedef enum HittableTypeEnum {
 } HittableType;
 
 struct _Hittable;
+typedef List(struct _Hittable) HittableList;
 
 typedef struct _Hittable {
   HittableType type;
@@ -29,21 +30,20 @@ typedef struct _Hittable {
       Point3 center;
       double r;
     };
-    List(struct _Hittable) * collection;
+    HittableList *collection;
   };
 } Hittable;
-
-typedef List(Hittable) HittableList;
 
 bool hittable_hit(const Hittable *hittable, Ray ray, double ray_tmin,
                   double ray_tmax, HitRecord *record);
 
-inline void hittable_list_add(HittableList *list, Hittable hittable) {
+static inline void hittable_list_add(HittableList *list, Hittable hittable) {
   list_push(list, hittable);
 }
 
-inline bool hittable_list_hit(HittableList *list, Ray ray, double ray_tmin,
-                              double ray_tmax, HitRecord *record) {
+static inline bool hittable_list_hit(HittableList *list, Ray ray,
+                                     double ray_tmin, double ray_tmax,
+                                     HitRecord *record) {
   HitRecord temp_record;
   bool anything_hitted = false;
   double current_closest = ray_tmax;
@@ -69,10 +69,10 @@ static inline Hittable hittable_sphere_new(Point3 center, double radius) {
 }
 
 static inline Hittable hittable_collection_new(Arena *arena) {
+  HittableList *list = (HittableList *)arena_push(arena, sizeof(HittableList));
+  list_init(list, arena);
   Hittable result =
-      (Hittable){.type = RAYTRACER_HITTABLE_COLLECTION, .collection = NULL};
-
-  list_init(result.collection, arena);
+      (Hittable){.type = RAYTRACER_HITTABLE_COLLECTION, .collection = list};
 
   return result;
 }
@@ -128,8 +128,8 @@ inline bool hittable_hit(const Hittable *hittable, Ray ray, double ray_tmin,
   case RAYTRACER_HITTABLE_SPHERE:
     return hittable_sphere_hit(hittable, ray, ray_tmin, ray_tmax, record);
   case RAYTRACER_HITTABLE_COLLECTION:
-    return hittable_list_hit((HittableList *)hittable->collection, ray,
-                             ray_tmin, ray_tmax, record);
+    return hittable_list_hit(hittable->collection, ray, ray_tmin, ray_tmax,
+                             record);
   }
 }
 
