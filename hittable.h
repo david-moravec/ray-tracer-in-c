@@ -41,33 +41,6 @@ static inline void hittable_list_add(HittableList *list, Hittable hittable) {
   list_push(list, hittable);
 }
 
-static inline bool hittable_list_hit(HittableList *list, Ray ray,
-                                     double ray_tmin, double ray_tmax,
-                                     HitRecord *record) {
-  HitRecord temp_record;
-  bool anything_hitted = false;
-  double current_closest = ray_tmax;
-
-  size_t index = 0;
-
-  for (list_iterate(*list, index)) {
-    Hittable *hittable = list_get(*list, index);
-
-    if (hittable_hit(hittable, ray, ray_tmin, ray_tmax, record)) {
-      anything_hitted = true;
-      current_closest = temp_record.t;
-      *record = temp_record;
-    }
-  }
-
-  return anything_hitted;
-}
-
-static inline Hittable hittable_sphere_new(Point3 center, double radius) {
-  return (Hittable){
-      .type = RAYTRACER_HITTABLE_SPHERE, .center = center, .r = radius};
-}
-
 static inline Hittable hittable_collection_new(Arena *arena) {
   HittableList *list = (HittableList *)arena_push(arena, sizeof(HittableList));
   list_init(list, arena);
@@ -75,6 +48,11 @@ static inline Hittable hittable_collection_new(Arena *arena) {
       (Hittable){.type = RAYTRACER_HITTABLE_COLLECTION, .collection = list};
 
   return result;
+}
+
+static inline Hittable hittable_sphere_new(Point3 center, double radius) {
+  return (Hittable){
+      .type = RAYTRACER_HITTABLE_SPHERE, .center = center, .r = radius};
 }
 
 static inline void hit_record_set_face_normal(HitRecord *record, const Ray ray,
@@ -120,6 +98,28 @@ static inline bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
   hit_record_set_face_normal(record, ray, outward_normal);
 
   return true;
+}
+
+static inline bool hittable_list_hit(HittableList *list, Ray ray,
+                                     double ray_tmin, double ray_tmax,
+                                     HitRecord *record) {
+  HitRecord temp_record;
+  bool anything_hitted = false;
+  double current_closest = ray_tmax;
+
+  size_t index = 0;
+
+  for (list_iterate(*list, index)) {
+    Hittable *hittable = list_get(*list, index);
+
+    if (hittable_hit(hittable, ray, ray_tmin, ray_tmax, record)) {
+      anything_hitted = true;
+      current_closest = temp_record.t;
+      *record = temp_record;
+    }
+  }
+
+  return anything_hitted;
 }
 
 inline bool hittable_hit(const Hittable *hittable, Ray ray, double ray_tmin,
