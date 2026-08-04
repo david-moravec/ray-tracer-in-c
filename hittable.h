@@ -4,7 +4,7 @@
 #include "assert.h"
 #include "base/include/arena.h"
 #include "base/include/list.h"
-// #include "hittable_list.h"
+#include "interval.h"
 #include "ray.h"
 #include "vec3.h"
 
@@ -34,8 +34,8 @@ typedef struct _Hittable {
   };
 } Hittable;
 
-bool hittable_hit(const Hittable *hittable, Ray ray, double ray_tmin,
-                  double ray_tmax, HitRecord *record);
+bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
+                  HitRecord *record);
 
 static inline void hittable_list_add(HittableList *list, Hittable hittable) {
   list_push(list, hittable);
@@ -66,8 +66,7 @@ static inline void hit_record_set_face_normal(HitRecord *record, const Ray ray,
 }
 
 static inline bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
-                                       double ray_tmin, double ray_tmax,
-                                       HitRecord *record) {
+                                       Interval ray_t, HitRecord *record) {
   assert(hittable->type == RAYTRACER_HITTABLE_SPHERE);
 
   Vec3 origin_to_center = vec3_subtract(hittable->center, ray.origin);
@@ -84,9 +83,9 @@ static inline bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
   double sqrt_discriminant = sqrt(discriminant);
   double root = (h - sqrt_discriminant) / a;
 
-  if (root <= ray_tmin || ray_tmax <= root) {
+  if (!interval_sorrounds(ray_t, root)) {
     root = (h + sqrt_discriminant) / a;
-    if (root <= ray_tmin || ray_tmax <= root) {
+    if (!interval_sorrounds(ray_t, root)) {
       return false;
     }
   }
@@ -101,18 +100,18 @@ static inline bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
 }
 
 static inline bool hittable_list_hit(HittableList *list, Ray ray,
-                                     double ray_tmin, double ray_tmax,
-                                     HitRecord *record) {
+                                     Interval ray_t, HitRecord *record) {
   HitRecord temp_record;
   bool anything_hitted = false;
-  double current_closest = ray_tmax;
+  double current_closest = ray_t.max;
 
   size_t index = 0;
 
   for (list_iterate(list, index)) {
     Hittable *hittable = list_get(list, index);
 
-    if (hittable_hit(hittable, ray, ray_tmin, current_closest, &temp_record)) {
+    if (hittable_hit(hittable, ray, interval_new(ray_t.min, current_closest),
+                     &temp_record)) {
       anything_hitted = true;
       current_closest = temp_record.t;
       *record = temp_record;
@@ -122,14 +121,13 @@ static inline bool hittable_list_hit(HittableList *list, Ray ray,
   return anything_hitted;
 }
 
-inline bool hittable_hit(const Hittable *hittable, Ray ray, double ray_tmin,
-                         double ray_tmax, HitRecord *record) {
+inline bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
+                         HitRecord *record) {
   switch (hittable->type) {
   case RAYTRACER_HITTABLE_SPHERE:
-    return hittable_sphere_hit(hittable, ray, ray_tmin, ray_tmax, record);
+    return hittable_sphere_hit(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_COLLECTION:
-    return hittable_list_hit(hittable->collection, ray, ray_tmin, ray_tmax,
-                             record);
+    return hittable_list_hit(hittable->collection, ray, ray_t, record);
   }
 }
 

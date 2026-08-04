@@ -15,7 +15,7 @@ const double ASPECT_RATIO = 16.0 / 9.0;
 
 Color ray_color(const Ray ray, const Hittable *world) {
   HitRecord record;
-  if (hittable_hit(world, ray, 0, INFINITY, &record)) {
+  if (hittable_hit(world, ray, interval_new(0.0, INFINITY), &record)) {
     return vec3_scalar_multiply(
         vec3_add(color_new(1.0, 1.0, 1.0), record.normal), 0.5);
   }
