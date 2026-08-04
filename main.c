@@ -16,9 +16,10 @@ int main() {
   hittable_list_add((HittableList *)world.collection,
                     hittable_sphere_new(point3_new(0.0, -100.5, -1.0), 100));
 
-  Camera camera;
+  Camera camera = {0};
   camera.aspect_ratio = 16.0 / 9.0;
   camera.image_width = 400;
+  camera.samples_per_pixel = 100;
 
   camera_initialize(&camera);
   camera_render(&camera, &world);

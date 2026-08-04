@@ -1,6 +1,7 @@
 #ifndef RAYTRACER_CAMERA_H
 #define RAYTRACER_CAMERA_H
 
+#include "rtcommon.h"
 #include "stdbool.h"
 #include "stdio.h"
 
@@ -16,9 +17,11 @@ typedef uint16_t u16;
 typedef struct {
   double aspect_ratio;
   u16 image_width;
+  u16 samples_per_pixel;
 
   // assigned during initialize
   u16 image_height;
+  double pixel_samples_scale;
   Point3 center;
   Point3 top_left_pixel_loc;
   Vec3 pixel_delta_u;
@@ -46,6 +49,8 @@ static inline void camera_initialize(Camera *camera) {
   u16 image_height = (u16)(image_width / camera->aspect_ratio);
   camera->image_height = (image_height < 1) ? 1 : image_height;
 
+  camera->pixel_samples_scale = 1.0 / camera->samples_per_pixel;
+
   f64 focal_length = 1.0;
   f64 viewport_height = 2.0;
   f64 viewport_width = viewport_height *
@@ -69,6 +74,24 @@ static inline void camera_initialize(Camera *camera) {
           vec3_add(camera->pixel_delta_u, camera->pixel_delta_v), 0.5));
 }
 
+static inline Vec3 sample_square() {
+  return vec3_new(random_double() - 0.5, random_double() - 0.5, 0);
+}
+
+static inline Ray get_ray(Camera *camera, u16 i, u16 j) {
+  Vec3 offset = sample_square();
+  Vec3 pixel_offset =
+      vec3_add(vec3_scalar_multiply(camera->pixel_delta_u, i + offset.x),
+               vec3_scalar_multiply(camera->pixel_delta_v, j + offset.y));
+
+  Vec3 pixel_sample = vec3_add(camera->top_left_pixel_loc, pixel_offset);
+
+  Point3 ray_origin = camera->center;
+  Vec3 ray_direction = vec3_subtract(pixel_sample, ray_origin);
+
+  return ray_new(ray_origin, ray_direction);
+}
+
 static inline void camera_render(Camera *camera, Hittable *world) {
   char buff[BUFSIZ];
   setvbuf(stderr, buff, _IOFBF, BUFSIZ);
@@ -78,20 +101,18 @@ static inline void camera_render(Camera *camera, Hittable *world) {
     fprintf(stderr, "\rScanlines reamining: %-6u", (camera->image_height - j));
     fflush(stderr);
     for (int i = 0; i < camera->image_width; i++) {
-      Vec3 pixel_offset =
-          vec3_add(vec3_scalar_multiply(camera->pixel_delta_u, i),
-                   vec3_scalar_multiply(camera->pixel_delta_v, j));
-      Point3 pixel_location =
-          vec3_add(camera->top_left_pixel_loc, pixel_offset);
-      const Ray r = ray_new(camera->center,
-                            vec3_subtract(pixel_location, camera->center));
+      Color pixel_color = {0};
+      for (int sample = 0; sample < camera->samples_per_pixel; sample++) {
+        Ray ray = get_ray(camera, i, j);
+        pixel_color = vec3_add(pixel_color, ray_color(ray, world));
+      }
 
-      Color pixel_color = ray_color(r, world);
-
-      color_fprint(stdout, &pixel_color);
+      color_fprint(stdout, vec3_scalar_multiply(pixel_color,
+                                                camera->pixel_samples_scale));
     }
   }
   fprintf(stderr, "\r%-40s\n", "Done");
   fflush(stderr);
 }
+
 #endif
