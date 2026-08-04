@@ -109,19 +109,13 @@ static inline bool hittable_list_hit(HittableList *list, Ray ray,
 
   size_t index = 0;
 
-  for (list_iterate(*list, index)) {
-    Hittable *hittable = list_get(*list, index);
+  for (list_iterate(list, index)) {
+    Hittable *hittable = list_get(list, index);
 
-    if (hittable_hit(hittable, ray, ray_tmin, ray_tmax, record)) {
+    if (hittable_hit(hittable, ray, ray_tmin, current_closest, &temp_record)) {
       anything_hitted = true;
       current_closest = temp_record.t;
-      // STUDY why the commented line is wrong, i thooght
-      // it will overwrite the fields of recrod with contenst
-      // of temp_record. Which should be equvivalent to record now
-      // pointing to temp record. At the end record and temp_record
-      // should have the same value in fields?
-      // *record = temp_record;
-      record = &temp_record;
+      *record = temp_record;
     }
   }
 
