@@ -18,6 +18,7 @@ typedef struct {
   double aspect_ratio;
   u16 image_width;
   u16 samples_per_pixel;
+  u16 max_depth;
 
   // assigned during initialize
   u16 image_height;
@@ -28,12 +29,15 @@ typedef struct {
   Vec3 pixel_delta_v;
 } Camera;
 
-static inline Color ray_color(const Ray ray, const Hittable *world) {
+static inline Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
+  if (depth == 0) {
+    return color_new(0.0, 0.0, 0.0);
+  }
   HitRecord record;
-  if (hittable_hit(world, ray, interval_new(0.0, INFINITY), &record)) {
-    Vec3 direction = vec3_random_on_hemishpere(record.normal);
-    return vec3_scalar_multiply(ray_color(ray_new(record.p, direction), world),
-                                0.5);
+  if (hittable_hit(world, ray, interval_new(0.001, INFINITY), &record)) {
+    Vec3 direction = vec3_add(record.normal, random_unit_vector());
+    return vec3_scalar_multiply(
+        ray_color(ray_new(record.p, direction), depth - 1, world), 0.5);
   }
 
   Vec3 unit_direction = vec3_unit_vector(ray.direction);
@@ -105,7 +109,8 @@ static inline void camera_render(Camera *camera, Hittable *world) {
       Color pixel_color = {0};
       for (int sample = 0; sample < camera->samples_per_pixel; sample++) {
         Ray ray = get_ray(camera, i, j);
-        pixel_color = vec3_add(pixel_color, ray_color(ray, world));
+        pixel_color =
+            vec3_add(pixel_color, ray_color(ray, camera->max_depth, world));
       }
 
       color_fprint(stdout, vec3_scalar_multiply(pixel_color,
