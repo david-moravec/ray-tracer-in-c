@@ -2,6 +2,7 @@
 #define RAYTRACER_VEC3_H
 
 #include "math.h"
+#include "rtcommon.h"
 #include "stdint.h"
 #include "stdio.h"
 
@@ -161,6 +162,35 @@ static inline Vec3 vec3_new(double x, double y, double z) {
 
 static inline Point3 point3_new(double x, double y, double z) {
   return vec3_new(x, y, z);
+}
+
+static inline Vec3 vec3_random() {
+  return vec3_new(random_double(), random_double(), random_double());
+}
+
+static inline Vec3 vec3_random_in_interval(double min, double max) {
+  return vec3_new(random_double_in_interval(min, max),
+                  random_double_in_interval(min, max),
+                  random_double_in_interval(min, max));
+}
+
+static inline Vec3 random_unit_vector() {
+  while (true) {
+    Vec3 random = vec3_random_in_interval(-1, 1);
+    double lensq = vec3_length_squared(random);
+    if (1e-160 < lensq && lensq <= 1) {
+      return vec3_scalar_devide(random, sqrt(lensq));
+    }
+  }
+}
+
+static inline Vec3 vec3_random_on_hemishpere(Vec3 normal) {
+  Vec3 on_unit_sphere = random_unit_vector();
+  if (vec3_dot_product(on_unit_sphere, normal) > 0.0) {
+    return on_unit_sphere;
+  } else {
+    return vec3_negative(on_unit_sphere);
+  }
 }
 
 #endif

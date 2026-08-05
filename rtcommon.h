@@ -16,8 +16,4 @@ static inline double random_double_in_interval(double min, double max) {
   return min + (max - min) * random_double();
 }
 
-#include "color.h"
-#include "ray.h"
-#include "vec3.h"
-
 #endif

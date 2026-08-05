@@ -31,8 +31,9 @@ typedef struct {
 static inline Color ray_color(const Ray ray, const Hittable *world) {
   HitRecord record;
   if (hittable_hit(world, ray, interval_new(0.0, INFINITY), &record)) {
-    return vec3_scalar_multiply(
-        vec3_add(color_new(1.0, 1.0, 1.0), record.normal), 0.5);
+    Vec3 direction = vec3_random_on_hemishpere(record.normal);
+    return vec3_scalar_multiply(ray_color(ray_new(record.p, direction), world),
+                                0.5);
   }
 
   Vec3 unit_direction = vec3_unit_vector(ray.direction);
