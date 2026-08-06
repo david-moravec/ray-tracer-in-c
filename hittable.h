@@ -8,10 +8,13 @@
 #include "ray.h"
 #include "vec3.h"
 
+struct _Material;
+
 typedef struct {
   Point3 p;
   Vec3 normal;
   double t;
+  struct _Material *material;
   bool front_face;
 } HitRecord;
 
@@ -29,6 +32,7 @@ typedef struct _Hittable {
     struct {
       Point3 center;
       double r;
+      struct _Material *material;
     };
     HittableList *collection;
   };
@@ -50,9 +54,12 @@ static inline Hittable hittable_collection_new(Arena *arena) {
   return result;
 }
 
-static inline Hittable hittable_sphere_new(Point3 center, double radius) {
-  return (Hittable){
-      .type = RAYTRACER_HITTABLE_SPHERE, .center = center, .r = radius};
+static inline Hittable hittable_sphere_new(Point3 center, double radius,
+                                           struct _Material *material) {
+  return (Hittable){.type = RAYTRACER_HITTABLE_SPHERE,
+                    .center = center,
+                    .r = radius,
+                    .material = material};
 }
 
 static inline void hit_record_set_face_normal(HitRecord *record, const Ray ray,
@@ -95,6 +102,7 @@ static inline bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
   Vec3 outward_normal = vec3_scalar_devide(
       vec3_subtract(record->p, hittable->center), hittable->r);
   hit_record_set_face_normal(record, ray, outward_normal);
+  record->material = hittable->material;
 
   return true;
 }

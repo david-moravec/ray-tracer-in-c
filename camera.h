@@ -1,6 +1,7 @@
 #ifndef RAYTRACER_CAMERA_H
 #define RAYTRACER_CAMERA_H
 
+#include "material.h"
 #include "rtcommon.h"
 #include "stdbool.h"
 #include "stdio.h"
@@ -35,9 +36,13 @@ static inline Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
   }
   HitRecord record;
   if (hittable_hit(world, ray, interval_new(0.001, INFINITY), &record)) {
-    Vec3 direction = vec3_add(record.normal, random_unit_vector());
-    return vec3_scalar_multiply(
-        ray_color(ray_new(record.p, direction), depth - 1, world), 0.5);
+    Ray scattered = {0};
+    Color attenuation = {0};
+    if (material_scatter(record.material, ray, record, &attenuation,
+                         &scattered)) {
+      return vec3_multiply(attenuation, ray_color(scattered, depth - 1, world));
+    }
+    return (Color){0};
   }
 
   Vec3 unit_direction = vec3_unit_vector(ray.direction);

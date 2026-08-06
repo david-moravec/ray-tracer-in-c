@@ -1,0 +1,69 @@
+#ifndef RAYTRACER_MATERIAL_H
+#define RAYTRACER_MATERIAL_H
+
+#include "stdbool.h"
+
+#include "color.h"
+#include "hittable.h"
+#include "ray.h"
+#include "vec3.h"
+
+typedef enum {
+  RAYTRACER_MATERIAL_LAMBERTIAN,
+  RAYTRACER_MATERIAL_METAL
+} MaterialType;
+
+typedef struct _Material {
+  MaterialType type;
+
+  union {
+    Color albedo;
+  };
+} Material;
+
+static inline Material material_new(MaterialType type, Color color) {
+  return (Material){.type = type, .albedo = color};
+}
+
+static inline bool material_scatter_lambertian(Material *material, Ray ray_in,
+                                               HitRecord record,
+                                               Color *attenuation,
+                                               Ray *scattered) {
+  Vec3 scatter_direction = vec3_add(record.normal, random_unit_vector());
+
+  if (vec3_near_zero(scatter_direction)) {
+    scatter_direction = record.normal;
+  }
+
+  *scattered = ray_new(record.p, scatter_direction);
+  *attenuation = material->albedo;
+
+  return true;
+}
+
+static inline bool material_scatter_metal(Material *material, Ray ray_in,
+                                          HitRecord record, Color *attenuation,
+                                          Ray *scattered) {
+  Vec3 reflected = vec3_reflect(ray_in.direction, record.normal);
+  *scattered = ray_new(record.p, reflected);
+  *attenuation = material->albedo;
+
+  return true;
+}
+
+static inline bool material_scatter(Material *material, Ray ray_in,
+                                    HitRecord record, Color *attenuation,
+                                    Ray *scattered) {
+  switch (material->type) {
+  case RAYTRACER_MATERIAL_LAMBERTIAN: {
+    return material_scatter_lambertian(material, ray_in, record, attenuation,
+                                       scattered);
+  }
+  case RAYTRACER_MATERIAL_METAL: {
+    return material_scatter_metal(material, ray_in, record, attenuation,
+                                  scattered);
+  }
+  }
+};
+
+#endif

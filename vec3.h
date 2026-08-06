@@ -193,4 +193,14 @@ static inline Vec3 vec3_random_on_hemishpere(Vec3 normal) {
   }
 }
 
+static inline bool vec3_near_zero(Vec3 v) {
+  double epsilon = 1e-8;
+  return (fabs(v.x) < epsilon) && (fabs(v.y) < epsilon) &&
+         (fabs(v.z) < epsilon);
+}
+
+static inline Vec3 vec3_reflect(Vec3 v, Vec3 n) {
+  return vec3_subtract(v, vec3_scalar_multiply(n, 2 * vec3_dot_product(v, n)));
+}
+
 #endif
