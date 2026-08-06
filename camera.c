@@ -23,6 +23,10 @@ typedef struct {
   u16 max_depth;
 
   double vfov;
+  Point3 look_from;
+  Point3 look_at;
+  Vec3 vup;
+
   // assigned during initialize
   u16 image_height;
   double pixel_samples_scale;
@@ -30,6 +34,7 @@ typedef struct {
   Point3 top_left_pixel_loc;
   Vec3 pixel_delta_u;
   Vec3 pixel_delta_v;
+  Vec3 u, v, w;
 } Camera;
 
 Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
@@ -63,22 +68,30 @@ void camera_initialize(Camera *camera) {
 
   camera->pixel_samples_scale = 1.0 / camera->samples_per_pixel;
 
-  f64 focal_length = 1.0;
+  camera->center = camera->look_from;
+  Vec3 look_direction = vec3_subtract(camera->look_from, camera->look_at);
+
+  double focal_length = vec3_length(look_direction);
   f64 theta = deg_to_rad(camera->vfov);
   f64 h = tan(theta / 2.0);
   f64 viewport_height = 2.0 * h * focal_length;
   f64 viewport_width = viewport_height *
                        ((f64)(camera->image_width) / (f64)camera->image_height);
-  Point3 camera_center = point3_new(0.0, 0.0, 0.0);
 
-  Vec3 viewport_u = vec3_new(viewport_width, 0, 0);
-  Vec3 viewport_v = vec3_new(0, -viewport_height, 0);
+  camera->w = vec3_unit_vector(look_direction);
+  camera->u = vec3_unit_vector(vec3_cross_product(camera->vup, camera->w));
+  camera->v = vec3_cross_product(camera->w, camera->u);
+
+  Vec3 viewport_u = vec3_scalar_multiply(camera->u, viewport_width);
+  Vec3 viewport_v =
+      vec3_scalar_multiply(vec3_negative(camera->v), viewport_height);
 
   camera->pixel_delta_u = vec3_scalar_devide(viewport_u, image_width);
   camera->pixel_delta_v = vec3_scalar_devide(viewport_v, image_height);
 
-  Vec3 viewport_center =
-      vec3_subtract(camera_center, vec3_new(0.0, 0.0, focal_length));
+  Vec3 viewport_center = vec3_subtract(
+      camera->center, vec3_scalar_multiply(camera->w, focal_length));
+
   Vec3 upper_left_offset = vec3_add(vec3_scalar_devide(viewport_u, 2),
                                     vec3_scalar_devide(viewport_v, 2));
   Vec3 viewport_upper_left = vec3_subtract(viewport_center, upper_left_offset);
