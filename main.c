@@ -42,10 +42,13 @@ int main() {
   camera.samples_per_pixel = 100;
   camera.max_depth = 50;
 
-  camera.vfov = 90;
+  camera.vfov = 20;
   camera.look_from = point3_new(-2.0, 2.0, 1.0);
   camera.look_at = point3_new(0.0, 0.0, -1.0);
   camera.vup = vec3_new(0.0, 1.0, 0.0);
+
+  camera.defocus_angle = 10.0;
+  camera.focus_dist = 3.4;
 
   camera_initialize(&camera);
   double start_time = (double)clock() / CLOCKS_PER_SEC;

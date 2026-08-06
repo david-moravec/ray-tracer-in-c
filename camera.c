@@ -27,6 +27,9 @@ typedef struct {
   Point3 look_at;
   Vec3 vup;
 
+  double defocus_angle;
+  double focus_dist;
+
   // assigned during initialize
   u16 image_height;
   double pixel_samples_scale;
@@ -35,6 +38,8 @@ typedef struct {
   Vec3 pixel_delta_u;
   Vec3 pixel_delta_v;
   Vec3 u, v, w;
+  Vec3 defocus_disk_u;
+  Vec3 defocus_disk_v;
 } Camera;
 
 Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
@@ -71,10 +76,9 @@ void camera_initialize(Camera *camera) {
   camera->center = camera->look_from;
   Vec3 look_direction = vec3_subtract(camera->look_from, camera->look_at);
 
-  double focal_length = vec3_length(look_direction);
   f64 theta = deg_to_rad(camera->vfov);
   f64 h = tan(theta / 2.0);
-  f64 viewport_height = 2.0 * h * focal_length;
+  f64 viewport_height = 2.0 * h * camera->focus_dist;
   f64 viewport_width = viewport_height *
                        ((f64)(camera->image_width) / (f64)camera->image_height);
 
@@ -90,7 +94,7 @@ void camera_initialize(Camera *camera) {
   camera->pixel_delta_v = vec3_scalar_devide(viewport_v, image_height);
 
   Vec3 viewport_center = vec3_subtract(
-      camera->center, vec3_scalar_multiply(camera->w, focal_length));
+      camera->center, vec3_scalar_multiply(camera->w, camera->focus_dist));
 
   Vec3 upper_left_offset = vec3_add(vec3_scalar_devide(viewport_u, 2),
                                     vec3_scalar_devide(viewport_v, 2));
@@ -99,10 +103,23 @@ void camera_initialize(Camera *camera) {
       viewport_upper_left,
       vec3_scalar_multiply(
           vec3_add(camera->pixel_delta_u, camera->pixel_delta_v), 0.5));
+
+  double defocus_radius =
+      camera->focus_dist * tan(deg_to_rad(camera->defocus_angle / 2.0));
+  camera->defocus_disk_u = vec3_scalar_multiply(camera->u, defocus_radius);
+  camera->defocus_disk_v = vec3_scalar_multiply(camera->v, defocus_radius);
 }
 
 Vec3 sample_square() {
   return vec3_new(random_double() - 0.5, random_double() - 0.5, 0);
+}
+
+static inline Point3 defocus_disk_sample(Camera *camera) {
+  Vec3 p = vec3_random_in_unit_disk();
+
+  return vec3_add(camera->center,
+                  vec3_add(vec3_scalar_multiply(camera->defocus_disk_u, p.x),
+                           vec3_scalar_multiply(camera->defocus_disk_v, p.y)));
 }
 
 Ray get_ray(Camera *camera, u16 i, u16 j) {
@@ -113,7 +130,8 @@ Ray get_ray(Camera *camera, u16 i, u16 j) {
 
   Vec3 pixel_sample = vec3_add(camera->top_left_pixel_loc, pixel_offset);
 
-  Point3 ray_origin = camera->center;
+  Point3 ray_origin =
+      camera->defocus_angle <= 0 ? camera->center : defocus_disk_sample(camera);
   Vec3 ray_direction = vec3_subtract(pixel_sample, ray_origin);
 
   return ray_new(ray_origin, ray_direction);

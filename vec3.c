@@ -167,6 +167,16 @@ static inline Point3 point3_new(double x, double y, double z) {
   return vec3_new(x, y, z);
 }
 
+static inline Vec3 vec3_random_in_unit_disk() {
+  while (true) {
+    Vec3 p = vec3_new(random_double_in_interval(-1, 1),
+                      random_double_in_interval(-1, 1), 0);
+    if (vec3_length_squared(p) < 1) {
+      return p;
+    }
+  }
+}
+
 static inline Vec3 vec3_random() {
   return vec3_new(random_double(), random_double(), random_double());
 }
