@@ -13,13 +13,13 @@ int main() {
   Hittable world = hittable_collection_new(arena);
 
   Material material_ground =
-      material_new(RAYTRACER_MATERIAL_LAMBERTIAN, color_new(0.8, 0.8, 0.0));
+      material_new(RAYTRACER_MATERIAL_LAMBERTIAN, color_new(0.8, 0.8, 0.0), -1);
   Material material_center =
-      material_new(RAYTRACER_MATERIAL_LAMBERTIAN, color_new(0.1, 0.2, 0.5));
+      material_new(RAYTRACER_MATERIAL_LAMBERTIAN, color_new(0.1, 0.2, 0.5), -1);
   Material material_left =
-      material_new(RAYTRACER_MATERIAL_METAL, color_new(0.8, 0.8, 0.8));
+      material_new(RAYTRACER_MATERIAL_METAL, color_new(0.8, 0.8, 0.8), 0.3);
   Material material_right =
-      material_new(RAYTRACER_MATERIAL_METAL, color_new(0.8, 0.6, 0.2));
+      material_new(RAYTRACER_MATERIAL_METAL, color_new(0.8, 0.6, 0.2), 1.0);
 
   hittable_list_add((HittableList *)world.collection,
                     hittable_sphere_new(point3_new(0.0, -100.5, -1.0), 100,

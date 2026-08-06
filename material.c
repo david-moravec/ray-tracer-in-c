@@ -15,14 +15,12 @@ typedef enum {
 
 typedef struct _Material {
   MaterialType type;
-
-  union {
-    Color albedo;
-  };
+  Color albedo;
+  double fuzz;
 } Material;
 
-Material material_new(MaterialType type, Color color) {
-  return (Material){.type = type, .albedo = color};
+Material material_new(MaterialType type, Color color, double fuzz) {
+  return (Material){.type = type, .albedo = color, .fuzz = fuzz};
 }
 
 bool material_scatter_lambertian(Material *material, Ray ray_in,
@@ -43,6 +41,9 @@ bool material_scatter_lambertian(Material *material, Ray ray_in,
 bool material_scatter_metal(Material *material, Ray ray_in, HitRecord record,
                             Color *attenuation, Ray *scattered) {
   Vec3 reflected = vec3_reflect(ray_in.direction, record.normal);
+  reflected =
+      vec3_add(vec3_unit_vector(reflected),
+               vec3_scalar_multiply(random_unit_vector(), material->fuzz));
   *scattered = ray_new(record.p, reflected);
   *attenuation = material->albedo;
 
