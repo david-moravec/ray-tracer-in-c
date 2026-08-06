@@ -31,7 +31,7 @@ typedef struct {
   Vec3 pixel_delta_v;
 } Camera;
 
-static inline Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
+Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
   if (depth == 0) {
     return color_new(0.0, 0.0, 0.0);
   }
@@ -55,7 +55,7 @@ static inline Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
                   vec3_scalar_multiply(blue, a));
 }
 
-static inline void camera_initialize(Camera *camera) {
+void camera_initialize(Camera *camera) {
   u16 image_width = 400;
   u16 image_height = (u16)(image_width / camera->aspect_ratio);
   camera->image_height = (image_height < 1) ? 1 : image_height;
@@ -85,11 +85,11 @@ static inline void camera_initialize(Camera *camera) {
           vec3_add(camera->pixel_delta_u, camera->pixel_delta_v), 0.5));
 }
 
-static inline Vec3 sample_square() {
+Vec3 sample_square() {
   return vec3_new(random_double() - 0.5, random_double() - 0.5, 0);
 }
 
-static inline Ray get_ray(Camera *camera, u16 i, u16 j) {
+Ray get_ray(Camera *camera, u16 i, u16 j) {
   Vec3 offset = sample_square();
   Vec3 pixel_offset =
       vec3_add(vec3_scalar_multiply(camera->pixel_delta_u, i + offset.x),
@@ -103,7 +103,7 @@ static inline Ray get_ray(Camera *camera, u16 i, u16 j) {
   return ray_new(ray_origin, ray_direction);
 }
 
-static inline void camera_render(Camera *camera, Hittable *world) {
+void camera_render(Camera *camera, Hittable *world) {
   char buff[BUFSIZ];
   setvbuf(stderr, buff, _IOFBF, BUFSIZ);
   printf("P3\n%u %u\n255\n", camera->image_width, camera->image_height);

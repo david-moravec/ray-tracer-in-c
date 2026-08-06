@@ -21,14 +21,13 @@ typedef struct _Material {
   };
 } Material;
 
-static inline Material material_new(MaterialType type, Color color) {
+Material material_new(MaterialType type, Color color) {
   return (Material){.type = type, .albedo = color};
 }
 
-static inline bool material_scatter_lambertian(Material *material, Ray ray_in,
-                                               HitRecord record,
-                                               Color *attenuation,
-                                               Ray *scattered) {
+bool material_scatter_lambertian(Material *material, Ray ray_in,
+                                 HitRecord record, Color *attenuation,
+                                 Ray *scattered) {
   Vec3 scatter_direction = vec3_add(record.normal, random_unit_vector());
 
   if (vec3_near_zero(scatter_direction)) {
@@ -41,9 +40,8 @@ static inline bool material_scatter_lambertian(Material *material, Ray ray_in,
   return true;
 }
 
-static inline bool material_scatter_metal(Material *material, Ray ray_in,
-                                          HitRecord record, Color *attenuation,
-                                          Ray *scattered) {
+bool material_scatter_metal(Material *material, Ray ray_in, HitRecord record,
+                            Color *attenuation, Ray *scattered) {
   Vec3 reflected = vec3_reflect(ray_in.direction, record.normal);
   *scattered = ray_new(record.p, reflected);
   *attenuation = material->albedo;
@@ -51,9 +49,8 @@ static inline bool material_scatter_metal(Material *material, Ray ray_in,
   return true;
 }
 
-static inline bool material_scatter(Material *material, Ray ray_in,
-                                    HitRecord record, Color *attenuation,
-                                    Ray *scattered) {
+bool material_scatter(Material *material, Ray ray_in, HitRecord record,
+                      Color *attenuation, Ray *scattered) {
   switch (material->type) {
   case RAYTRACER_MATERIAL_LAMBERTIAN: {
     return material_scatter_lambertian(material, ray_in, record, attenuation,

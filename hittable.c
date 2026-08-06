@@ -43,11 +43,11 @@ typedef struct _Hittable {
 bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
                   HitRecord *record);
 
-static inline void hittable_list_add(HittableList *list, Hittable hittable) {
+void hittable_list_add(HittableList *list, Hittable hittable) {
   list_push(list, hittable);
 }
 
-static inline Hittable hittable_collection_new(Arena *arena) {
+Hittable hittable_collection_new(Arena *arena) {
   HittableList *list = (HittableList *)arena_push(arena, sizeof(HittableList));
   list_init(list, arena);
   Hittable result =
@@ -56,16 +56,16 @@ static inline Hittable hittable_collection_new(Arena *arena) {
   return result;
 }
 
-static inline Hittable hittable_sphere_new(Point3 center, double radius,
-                                           struct _Material *material) {
+Hittable hittable_sphere_new(Point3 center, double radius,
+                             struct _Material *material) {
   return (Hittable){.type = RAYTRACER_HITTABLE_SPHERE,
                     .center = center,
                     .r = radius,
                     .material = material};
 }
 
-static inline void hit_record_set_face_normal(HitRecord *record, const Ray ray,
-                                              const Vec3 outward_normal) {
+void hit_record_set_face_normal(HitRecord *record, const Ray ray,
+                                const Vec3 outward_normal) {
 #ifdef DEBUG
   assert(fabs(vec3_length_squared(outward_normal) - 1.0) < 1e-12);
 #endif
@@ -74,8 +74,8 @@ static inline void hit_record_set_face_normal(HitRecord *record, const Ray ray,
       record->front_face ? outward_normal : vec3_negative(outward_normal);
 }
 
-static inline bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
-                                       Interval ray_t, HitRecord *record) {
+bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
+                         Interval ray_t, HitRecord *record) {
   assert(hittable->type == RAYTRACER_HITTABLE_SPHERE);
 
   Vec3 origin_to_center = vec3_subtract(hittable->center, ray.origin);
@@ -109,8 +109,8 @@ static inline bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
   return true;
 }
 
-static inline bool hittable_list_hit(HittableList *list, Ray ray,
-                                     Interval ray_t, HitRecord *record) {
+bool hittable_list_hit(HittableList *list, Ray ray, Interval ray_t,
+                       HitRecord *record) {
   HitRecord temp_record;
   bool anything_hitted = false;
   double current_closest = ray_t.max;
@@ -131,8 +131,8 @@ static inline bool hittable_list_hit(HittableList *list, Ray ray,
   return anything_hitted;
 }
 
-inline bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
-                         HitRecord *record) {
+bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
+                  HitRecord *record) {
   switch (hittable->type) {
   case RAYTRACER_HITTABLE_SPHERE:
     return hittable_sphere_hit(hittable, ray, ray_t, record);
