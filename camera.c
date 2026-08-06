@@ -22,6 +22,7 @@ typedef struct {
   u16 samples_per_pixel;
   u16 max_depth;
 
+  double vfov;
   // assigned during initialize
   u16 image_height;
   double pixel_samples_scale;
@@ -63,7 +64,9 @@ void camera_initialize(Camera *camera) {
   camera->pixel_samples_scale = 1.0 / camera->samples_per_pixel;
 
   f64 focal_length = 1.0;
-  f64 viewport_height = 2.0;
+  f64 theta = deg_to_rad(camera->vfov);
+  f64 h = tan(theta / 2.0);
+  f64 viewport_height = 2.0 * h * focal_length;
   f64 viewport_width = viewport_height *
                        ((f64)(camera->image_width) / (f64)camera->image_height);
   Point3 camera_center = point3_new(0.0, 0.0, 0.0);
