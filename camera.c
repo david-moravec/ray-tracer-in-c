@@ -67,8 +67,7 @@ Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
 }
 
 void camera_initialize(Camera *camera) {
-  u16 image_width = 400;
-  u16 image_height = (u16)(image_width / camera->aspect_ratio);
+  u16 image_height = (u16)(camera->image_width / camera->aspect_ratio);
   camera->image_height = (image_height < 1) ? 1 : image_height;
 
   camera->pixel_samples_scale = 1.0 / camera->samples_per_pixel;
@@ -90,7 +89,7 @@ void camera_initialize(Camera *camera) {
   Vec3 viewport_v =
       vec3_scalar_multiply(vec3_negative(camera->v), viewport_height);
 
-  camera->pixel_delta_u = vec3_scalar_devide(viewport_u, image_width);
+  camera->pixel_delta_u = vec3_scalar_devide(viewport_u, camera->image_width);
   camera->pixel_delta_v = vec3_scalar_devide(viewport_v, image_height);
 
   Vec3 viewport_center = vec3_subtract(
