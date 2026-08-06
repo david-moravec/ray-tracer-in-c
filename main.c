@@ -1,6 +1,7 @@
 #include "material.h"
 #include "stdbool.h"
 #include "stdint.h"
+#include "time.h"
 
 #include "base/include/arena.h"
 
@@ -40,5 +41,9 @@ int main() {
   camera.max_depth = 50;
 
   camera_initialize(&camera);
+  double start_time = (double)clock() / CLOCKS_PER_SEC;
   camera_render(&camera, &world);
+  double end_time = (double)clock() / CLOCKS_PER_SEC;
+
+  fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
 }
