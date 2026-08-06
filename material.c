@@ -1,6 +1,7 @@
 #ifndef RAYTRACER_MATERIAL_C
 #define RAYTRACER_MATERIAL_C
 
+#include "rtcommon.h"
 #include "stdbool.h"
 
 #include "color.c"
@@ -10,17 +11,29 @@
 
 typedef enum {
   RAYTRACER_MATERIAL_LAMBERTIAN,
-  RAYTRACER_MATERIAL_METAL
+  RAYTRACER_MATERIAL_METAL,
+  RAYTRACER_MATERIAL_DIELECTRICS
 } MaterialType;
 
 typedef struct _Material {
   MaterialType type;
   Color albedo;
   double fuzz;
+  double refraction_index;
 } Material;
 
-Material material_new(MaterialType type, Color color, double fuzz) {
-  return (Material){.type = type, .albedo = color, .fuzz = fuzz};
+Material material_new_lambertian(Color color) {
+  return (Material){.type = RAYTRACER_MATERIAL_LAMBERTIAN, .albedo = color};
+}
+
+Material material_new_metal(Color color, double fuzz) {
+  return (Material){
+      .type = RAYTRACER_MATERIAL_METAL, .albedo = color, .fuzz = fuzz};
+}
+
+Material material_new_dielectrics(double refraction_index) {
+  return (Material){.type = RAYTRACER_MATERIAL_DIELECTRICS,
+                    .refraction_index = refraction_index};
 }
 
 bool material_scatter_lambertian(Material *material, Ray ray_in,
@@ -50,6 +63,38 @@ bool material_scatter_metal(Material *material, Ray ray_in, HitRecord record,
   return true;
 }
 
+static inline double reflectance(double cosine, double refraction_index) {
+  double r0 = (1 - refraction_index) / (1 + refraction_index);
+  r0 = r0 * r0;
+  return r0 + (1 - r0) * pow(1 - cosine, 5);
+}
+
+bool material_scatter_dielectrics(Material *material, Ray ray_in,
+                                  HitRecord record, Color *attenuation,
+                                  Ray *scattered) {
+  *attenuation = color_new(1.0, 1.0, 1.0);
+  double ri = record.front_face ? (1.0 / material->refraction_index)
+                                : material->refraction_index;
+
+  Vec3 unit_direction = vec3_unit_vector(ray_in.direction);
+  double cos_theta =
+      fmin(vec3_dot_product(vec3_negative(unit_direction), record.normal), 1.0);
+  double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+  bool cannot_refract = ri * sin_theta > 1.0;
+  Vec3 direction = {0};
+
+  if (cannot_refract || reflectance(cos_theta, ri) > random_double()) {
+    direction = vec3_reflect(unit_direction, record.normal);
+  } else {
+    direction = vec3_refract(unit_direction, record.normal, ri);
+  }
+
+  *scattered = ray_new(record.p, direction);
+
+  return true;
+}
+
 bool material_scatter(Material *material, Ray ray_in, HitRecord record,
                       Color *attenuation, Ray *scattered) {
   switch (material->type) {
@@ -60,6 +105,10 @@ bool material_scatter(Material *material, Ray ray_in, HitRecord record,
   case RAYTRACER_MATERIAL_METAL: {
     return material_scatter_metal(material, ray_in, record, attenuation,
                                   scattered);
+  }
+  case RAYTRACER_MATERIAL_DIELECTRICS: {
+    return material_scatter_dielectrics(material, ray_in, record, attenuation,
+                                        scattered);
   }
   }
 };

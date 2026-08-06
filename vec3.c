@@ -205,4 +205,15 @@ static inline Vec3 vec3_reflect(Vec3 v, Vec3 n) {
   return vec3_subtract(v, vec3_scalar_multiply(n, 2 * vec3_dot_product(v, n)));
 }
 
+static inline Vec3 vec3_refract(Vec3 uv, Vec3 n,
+                                double refraction_index_ratio) {
+  double cos_theta = fmin(vec3_dot_product(vec3_negative(uv), n), 1.0);
+  Vec3 r_out_perp = vec3_scalar_multiply(
+      vec3_add(uv, vec3_scalar_multiply(n, cos_theta)), refraction_index_ratio);
+  Vec3 r_out_parallel = vec3_scalar_multiply(
+      n, -sqrt(fabs(1.0 - vec3_length_squared(r_out_perp))));
+
+  return vec3_add(r_out_perp, r_out_parallel);
+}
+
 #endif
