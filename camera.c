@@ -1,15 +1,16 @@
-#ifndef RAYTRACER_CAMERA_H
-#define RAYTRACER_CAMERA_H
+#ifndef RAYTRACER_CAMERA_C
+#define RAYTRACER_CAMERA_C
 
-#include "material.h"
-#include "rtcommon.h"
 #include "stdbool.h"
 #include "stdio.h"
 
-#include "color.h"
-#include "hittable.h"
-#include "ray.h"
-#include "vec3.h"
+#include "rtcommon.h"
+
+#include "color.c"
+#include "hittable.c"
+#include "material.c"
+#include "ray.c"
+#include "vec3.c"
 
 typedef float f32;
 typedef double f64;

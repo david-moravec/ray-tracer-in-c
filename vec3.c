@@ -1,7 +1,9 @@
-#ifndef RAYTRACER_VEC3_H
-#define RAYTRACER_VEC3_H
+#ifndef RAYTRACER_VEC3_C
+#define RAYTRACER_VEC3_C
 
 #include "math.h"
+#include "stdbool.h"
+
 #include "rtcommon.h"
 #include "stdint.h"
 #include "stdio.h"

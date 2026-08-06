@@ -1,9 +1,10 @@
-#ifndef RAYTRACER_COLOR_H
-#define RAYTRACER_COLOR_H
+#ifndef RAYTRACER_COLOR_C
+#define RAYTRACER_COLOR_C
 
-#include "interval.h"
 #include "stdio.h"
-#include "vec3.h"
+
+#include "interval.c"
+#include "vec3.c"
 
 static const Interval _INTENSITY = (Interval){.min = 0.0, .max = 0.999};
 

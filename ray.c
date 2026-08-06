@@ -1,7 +1,7 @@
-#ifndef RAYTRACER_RAY_H
-#define RAYTRACER_RAY_H
+#ifndef RAYTRACER_RAY_C
+#define RAYTRACER_RAY_C
 
-#include "vec3.h"
+#include "vec3.c"
 
 typedef struct {
   Vec3 origin;

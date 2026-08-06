@@ -2,6 +2,7 @@
 #define INTERVAL_H
 
 #include "math.h"
+#include "stdbool.h"
 
 typedef struct {
   double min;

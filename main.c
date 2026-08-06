@@ -1,12 +1,12 @@
-#include "material.h"
 #include "stdbool.h"
 #include "stdint.h"
 #include "time.h"
 
 #include "base/include/arena.h"
 
-#include "camera.h"
-#include "hittable.h"
+#include "camera.c"
+#include "hittable.c"
+#include "material.c"
 
 int main() {
   Arena *arena = arena_alloc(1 << 20, 0);

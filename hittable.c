@@ -2,11 +2,13 @@
 #define RAYTRACER_HITTABLE_C
 
 #include "assert.h"
+
 #include "base/include/arena.h"
 #include "base/include/list.h"
-#include "interval.h"
-#include "ray.h"
-#include "vec3.h"
+
+#include "interval.c"
+#include "ray.c"
+#include "vec3.c"
 
 struct _Material;
 
