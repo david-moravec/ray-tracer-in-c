@@ -146,6 +146,12 @@ Color trace_pixel(Camera *camera, int x, int y, Hittable *world) {
   return vec3_scalar_multiply(pixel_color, camera->pixel_samples_scale);
 }
 
+void trace_row(Camera *camera, int y, Hittable *world, Color *frame_buff) {
+  for (int x = 0; x < camera->image_width; x++) {
+    frame_buff[y * camera->image_width + x] = trace_pixel(camera, x, y, world);
+  }
+}
+
 void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
   // NOTE make this depend on a compiler flag MULTITHREADED
   // char buff[BUFSIZ];
@@ -154,10 +160,8 @@ void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
   for (int y = 0; y < camera->image_height; y++) {
     // fprintf(stderr, "\rScanlines reamining: %-6u", (camera->image_height -
     // y)); fflush(stderr);
-    for (int x = 0; x < camera->image_width; x++) {
-      frame_buff[y * camera->image_width + x] =
-          trace_pixel(camera, x, y, world);
-    }
+    //
+    trace_row(camera, y, world, frame_buff);
   }
 
   // fprintf(stderr, "\r%-40s\n", "Done");
