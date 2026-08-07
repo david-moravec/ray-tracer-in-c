@@ -10,7 +10,7 @@
 #include "material.c"
 
 int main() {
-  Arena *arena = arena_alloc(1 << 20, 0);
+  Arena *arena = arena_alloc(1 << 30, 0);
   Hittable world = hittable_collection_new(arena);
 
   Material material_ground = material_new_lambertian(color_new(0.5, 0.5, 0.5));
@@ -79,7 +79,7 @@ int main() {
 
   camera_initialize(&camera);
   double start_time = (double)clock() / CLOCKS_PER_SEC;
-  camera_render(&camera, &world);
+  camera_render(&camera, &world, arena);
   double end_time = (double)clock() / CLOCKS_PER_SEC;
 
   fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
