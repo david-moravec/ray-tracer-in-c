@@ -3,7 +3,7 @@
 
 #include "stdbool.h"
 
-#include "multihreading.h"
+#include "multihreading.c"
 #include "rtcommon.h"
 
 #include "color.c"
@@ -152,7 +152,7 @@ void trace_row(Camera *camera, int y, Hittable *world, Color *frame_buff) {
   }
 }
 
-void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
+void _render(Camera *camera, Hittable *world, Color *frame_buff) {
   // NOTE make this depend on a compiler flag MULTITHREADED
   // char buff[BUFSIZ];
   // setvbuf(stderr, buff, _IOFBF, BUFSIZ);
@@ -166,6 +166,20 @@ void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
 
   // fprintf(stderr, "\r%-40s\n", "Done");
   // fflush(stderr);
+}
+
+void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
+  _render(camera, world, frame_buff);
+}
+
+void camera_render_multithread(Camera *camera, Hittable *world,
+                               Color *frame_buff) {
+  struct ThreadArgs {
+    int order;
+    int number_of_threads;
+    int image_height;
+    int image_width;
+  };
 }
 
 #endif
