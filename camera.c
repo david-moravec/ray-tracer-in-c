@@ -1,11 +1,9 @@
 #ifndef RAYTRACER_CAMERA_C
 #define RAYTRACER_CAMERA_C
 
-#include "base/include/arena.h"
 #include "stdbool.h"
-#include "stdio.h"
-#include "string.h"
 
+#include "multihreading.h"
 #include "rtcommon.h"
 
 #include "color.c"
@@ -138,37 +136,32 @@ Ray get_ray(Camera *camera, u16 i, u16 j) {
   return ray_new(ray_origin, ray_direction);
 }
 
-void camera_render(Camera *camera, Hittable *world, Arena *arena) {
-  char buff[BUFSIZ];
-  setvbuf(stderr, buff, _IOFBF, BUFSIZ);
-  printf("P3\n%u %u\n255\n", camera->image_width, camera->image_height);
+Color trace_pixel(Camera *camera, int x, int y, Hittable *world) {
+  Color pixel_color = {0};
+  for (int sample = 0; sample < camera->samples_per_pixel; sample++) {
+    Ray ray = get_ray(camera, x, y);
+    pixel_color =
+        vec3_add(pixel_color, ray_color(ray, camera->max_depth, world));
+  }
+  return vec3_scalar_multiply(pixel_color, camera->pixel_samples_scale);
+}
 
-  uint32_t pixel_count = camera->image_height * camera->image_width;
-
-  Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
+void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
+  // NOTE make this depend on a compiler flag MULTITHREADED
+  // char buff[BUFSIZ];
+  // setvbuf(stderr, buff, _IOFBF, BUFSIZ);
 
   for (int y = 0; y < camera->image_height; y++) {
-    fprintf(stderr, "\rScanlines reamining: %-6u", (camera->image_height - y));
-    fflush(stderr);
+    // fprintf(stderr, "\rScanlines reamining: %-6u", (camera->image_height -
+    // y)); fflush(stderr);
     for (int x = 0; x < camera->image_width; x++) {
-      Color pixel_color = {0};
-      for (int sample = 0; sample < camera->samples_per_pixel; sample++) {
-        Ray ray = get_ray(camera, x, y);
-        pixel_color =
-            vec3_add(pixel_color, ray_color(ray, camera->max_depth, world));
-      }
-      pixel_color =
-          vec3_scalar_multiply(pixel_color, camera->pixel_samples_scale);
-
-      frame_buff[y * camera->image_width + x] = pixel_color;
+      frame_buff[y * camera->image_width + x] =
+          trace_pixel(camera, x, y, world);
     }
   }
 
-  for (int i = 0; i < pixel_count; i++) {
-    color_fprint(stdout, frame_buff[i]);
-  }
-  fprintf(stderr, "\r%-40s\n", "Done");
-  fflush(stderr);
+  // fprintf(stderr, "\r%-40s\n", "Done");
+  // fflush(stderr);
 }
 
 #endif

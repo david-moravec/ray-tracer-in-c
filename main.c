@@ -78,9 +78,18 @@ int main() {
   camera.focus_dist = 10.0;
 
   camera_initialize(&camera);
+
   double start_time = (double)clock() / CLOCKS_PER_SEC;
-  camera_render(&camera, &world, arena);
+  uint32_t pixel_count = camera.image_height * camera.image_width;
+  Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
+  camera_render(&camera, &world, frame_buff);
   double end_time = (double)clock() / CLOCKS_PER_SEC;
+
+  // print to ppm
+  printf("P3\n%u %u\n255\n", camera.image_width, camera.image_height);
+  for (int i = 0; i < pixel_count; i++) {
+    color_fprint(stdout, frame_buff[i]);
+  }
 
   fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
 }
