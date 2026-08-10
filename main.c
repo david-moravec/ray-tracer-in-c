@@ -66,7 +66,7 @@ int main() {
   Camera camera = {0};
   camera.aspect_ratio = 16.0 / 9.0;
   camera.image_width = 400;
-  camera.samples_per_pixel = 10;
+  camera.samples_per_pixel = 50;
   camera.max_depth = 50;
 
   camera.vfov = 20;
@@ -82,7 +82,7 @@ int main() {
   double start_time = (double)clock() / CLOCKS_PER_SEC;
   uint32_t pixel_count = camera.image_height * camera.image_width;
   Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
-  camera_render(&camera, &world, frame_buff);
+  camera_render_multithread(&camera, &world, frame_buff);
   double end_time = (double)clock() / CLOCKS_PER_SEC;
 
   // print to ppm

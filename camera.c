@@ -11,6 +11,7 @@
 #include "material.c"
 #include "ray.c"
 #include "vec3.c"
+#include <minwindef.h>
 
 typedef float f32;
 typedef double f64;
@@ -154,32 +155,87 @@ void trace_row(Camera *camera, int y, Hittable *world, Color *frame_buff) {
 
 void _render(Camera *camera, Hittable *world, Color *frame_buff) {
   // NOTE make this depend on a compiler flag MULTITHREADED
-  // char buff[BUFSIZ];
-  // setvbuf(stderr, buff, _IOFBF, BUFSIZ);
+  char buff[BUFSIZ];
+  setvbuf(stderr, buff, _IOFBF, BUFSIZ);
 
   for (int y = 0; y < camera->image_height; y++) {
-    // fprintf(stderr, "\rScanlines reamining: %-6u", (camera->image_height -
-    // y)); fflush(stderr);
-    //
+    fprintf(stderr, "\rScanlines reamining: %-6u", (camera->image_height - y));
+    fflush(stderr);
+
     trace_row(camera, y, world, frame_buff);
   }
 
-  // fprintf(stderr, "\r%-40s\n", "Done");
-  // fflush(stderr);
+  fprintf(stderr, "\r%-40s\n", "Done");
+  fflush(stderr);
 }
 
 void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
   _render(camera, world, frame_buff);
 }
 
+typedef struct {
+  int thread_id;
+  int number_of_threads;
+  Camera *camera;
+  Hittable *world;
+  Color *frame_buff;
+
+} ThreadArgs;
+
+DWORD WINAPI _render_multithread(LPVOID param) {
+  ThreadArgs *args = (ThreadArgs *)param;
+
+  for (int y = args->thread_id; y < args->camera->image_height;
+       y += args->number_of_threads) {
+    for (int x = 0; x < args->camera->image_width; x++) {
+      Color c = trace_pixel(args->camera, x, y, args->world);
+      args->frame_buff[y * args->camera->image_width + x] = c;
+    }
+  }
+
+  return 0;
+}
+
 void camera_render_multithread(Camera *camera, Hittable *world,
                                Color *frame_buff) {
-  struct ThreadArgs {
-    int order;
-    int number_of_threads;
-    int image_height;
-    int image_width;
-  };
+
+  size_t size_of_thread_args = sizeof(ThreadArgs);
+  int number_of_threads = multithreading_number_of_threads();
+  HANDLE *threads = (HANDLE *)malloc(number_of_threads * sizeof(HANDLE));
+  ThreadArgs *thread_args =
+      (ThreadArgs *)malloc(number_of_threads * size_of_thread_args);
+
+  LARGE_INTEGER freq, start, end;
+  QueryPerformanceFrequency(&freq);
+  QueryPerformanceCounter(&start);
+
+  for (int i = 0; i < number_of_threads; i++) {
+    thread_args[i] = (ThreadArgs){.thread_id = i,
+                                  .number_of_threads = number_of_threads,
+                                  .camera = camera,
+                                  .world = world,
+                                  .frame_buff = frame_buff};
+
+    threads[i] =
+        CreateThread(NULL, 0, _render_multithread, &thread_args[i], 0, NULL);
+
+    if (threads[i] == NULL) {
+      fprintf(stderr, "Failed to create thread %d/n", i);
+    }
+  }
+
+  WaitForMultipleObjects(number_of_threads, threads, TRUE, INFINITE);
+
+  QueryPerformanceCounter(&end);
+  double elapsed = (double)(end.QuadPart - start.QuadPart) / freq.QuadPart;
+  fprintf(stderr, "Render time: %.3f seconds \n", elapsed);
+
+  for (int i = 0; i < number_of_threads; i++) {
+    CloseHandle(threads[i]);
+  }
+
+  free(threads);
+  free(thread_args);
 }
 
 #endif
