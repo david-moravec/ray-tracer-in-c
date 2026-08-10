@@ -12,6 +12,8 @@
 #include "ray.c"
 #include "vec3.c"
 #include <minwindef.h>
+#include <windows.h>
+#include <winerror.h>
 
 typedef float f32;
 typedef double f64;
@@ -179,6 +181,7 @@ typedef struct {
   Camera *camera;
   Hittable *world;
   Color *frame_buff;
+  LONG *rows_done;
 
 } ThreadArgs;
 
@@ -191,6 +194,8 @@ DWORD WINAPI _render_multithread(LPVOID param) {
       Color c = trace_pixel(args->camera, x, y, args->world);
       args->frame_buff[y * args->camera->image_width + x] = c;
     }
+
+    InterlockedIncrement(args->rows_done);
   }
 
   return 0;
@@ -209,12 +214,16 @@ void camera_render_multithread(Camera *camera, Hittable *world,
   QueryPerformanceFrequency(&freq);
   QueryPerformanceCounter(&start);
 
+  LONG rows_done = 0;
+  int total_rows = camera->image_height;
+
   for (int i = 0; i < number_of_threads; i++) {
     thread_args[i] = (ThreadArgs){.thread_id = i,
                                   .number_of_threads = number_of_threads,
                                   .camera = camera,
                                   .world = world,
-                                  .frame_buff = frame_buff};
+                                  .frame_buff = frame_buff,
+                                  .rows_done = &rows_done};
 
     threads[i] =
         CreateThread(NULL, 0, _render_multithread, &thread_args[i], 0, NULL);
@@ -224,7 +233,19 @@ void camera_render_multithread(Camera *camera, Hittable *world,
     }
   }
 
-  WaitForMultipleObjects(number_of_threads, threads, TRUE, INFINITE);
+  DWORD wait_result;
+
+  char buff[BUFSIZ];
+  setvbuf(stderr, buff, _IOFBF, BUFSIZ);
+
+  do {
+    wait_result = WaitForMultipleObjects(number_of_threads, threads, TRUE, 250);
+    LONG done = InterlockedCompareExchange(&rows_done, 0, 0);
+    fprintf(stderr, "\rScanlines reamining: %-6ld",
+            (camera->image_height - rows_done));
+    fflush(stderr);
+  } while (wait_result == WAIT_TIMEOUT);
+  fprintf(stderr, "\n");
 
   QueryPerformanceCounter(&end);
   double elapsed = (double)(end.QuadPart - start.QuadPart) / freq.QuadPart;
