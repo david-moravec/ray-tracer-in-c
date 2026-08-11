@@ -17,6 +17,16 @@ static inline Interval interval_new(double min, double max) {
   return (Interval){.min = min, .max = max};
 }
 
+static inline Interval interval_expand(Interval interval, double delta) {
+  double padding = delta / 2.0;
+
+  return interval_new(interval.min - padding, interval.max + padding);
+}
+
+static inline Interval interval_new_enclose(Interval i0, Interval i1) {
+  return interval_new(fmin(i0.min, i1.min), fmax(i0.max, i1.max));
+}
+
 static inline double interval_size(Interval interval) {
   return interval.max - interval.min;
 }

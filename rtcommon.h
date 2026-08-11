@@ -16,4 +16,8 @@ static inline double random_double_in_interval(double min, double max) {
   return min + (max - min) * random_double();
 }
 
+static inline int random_int_in_interval(int min, int max) {
+  return (int)random_double_in_interval(min, max + 1);
+}
+
 #endif
