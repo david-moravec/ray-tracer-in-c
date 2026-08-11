@@ -85,4 +85,12 @@ int aabb_z_compare(const void *box0, const void *box1) {
   return aabb_compare(box0, box1, 2);
 }
 
+int aabb_longest_axis(Aabb bbox) {
+  if (interval_size(bbox.x) > interval_size(bbox.y)) {
+    return interval_size(bbox.x) > interval_size(bbox.z) ? 0 : 2;
+  } else {
+    return interval_size(bbox.y) > interval_size(bbox.z) ? 1 : 2;
+  }
+}
+
 #endif

@@ -85,7 +85,15 @@ Hittable hittable_sphere_new(Point3 center, double radius,
 Hittable hittable_bhv_node_new(HittableList *hittables, size_t start,
                                size_t end, Arena *arena) {
   Hittable bhv_node = (Hittable){.type = RAYTRACER_HITTABLE_BHV_NODE};
-  int axis = random_int_in_interval(0, 2);
+
+  Aabb bbox = aabb_new_empty();
+
+  for (size_t object_index = start; object_index < end; object_index++) {
+    Hittable *object = list_get(hittables, object_index);
+    bbox = aabb_union(bbox, object->bounding_box);
+  }
+
+  int axis = aabb_longest_axis(bbox);
 
   compare_function comparator = (axis == 0)   ? aabb_x_compare
                                 : (axis == 1) ? aabb_y_compare
@@ -109,8 +117,7 @@ Hittable hittable_bhv_node_new(HittableList *hittables, size_t start,
     bhv_node.right = arena_push_copy(arena, sizeof(Hittable), &right);
   }
 
-  bhv_node.bounding_box =
-      aabb_union(bhv_node.left->bounding_box, bhv_node.right->bounding_box);
+  bhv_node.bounding_box = bbox;
 
   return bhv_node;
 }
