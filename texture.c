@@ -3,10 +3,13 @@
 
 #include "base/include/arena.h"
 #include "color.c"
+#include "interval.c"
+#include "rtc_stb_image.h"
 
 typedef enum {
   RAYTRACER_TEXTURE_TYPE_SOLID_COLOR,
   RAYTRACER_TEXTURE_TYPE_CHECKERED,
+  RAYTRACER_TEXTURE_TYPE_IMAGE,
 } TextureType;
 
 typedef struct _Texture {
@@ -22,6 +25,8 @@ typedef struct _Texture {
       struct _Texture *even;
       struct _Texture *odd;
     };
+
+    RTCImage *image;
   };
 } Texture;
 
@@ -75,6 +80,34 @@ Color texture_value_checkered(Texture *texture, double u, double v, Point3 p) {
                  : texture_value(texture->odd, u, v, p);
 }
 
+// Image
+
+Texture texture_image_new(const char *path, Arena *arena) {
+  RTCImage image = rtc_image_new(path, arena);
+
+  return (Texture){.type = RAYTRACER_TEXTURE_TYPE_IMAGE,
+                   .image = ARENA_PUSH_COPY(arena, RTCImage, &image)};
+}
+
+Color texture_value_image(Texture *texture, double u, double v, Point3 p) {
+  RTCImage *image = texture->image;
+  if (image->height <= 0) {
+    return color_new(0, 1, 1);
+  }
+
+  u = clamp_value(0, 1, u);
+  v = 1.0 - clamp_value(0, 1, v);
+
+  int i = (int)(u * image->width);
+  int j = (int)(v * image->height);
+  const unsigned char *pixel = rtc_image_pixel_data(image, i, j);
+
+  double color_scale = 1.0 / 255.0;
+
+  return color_new(color_scale * pixel[0], color_scale * pixel[1],
+                   color_scale * pixel[2]);
+}
+
 Color texture_value(Texture *texture, double u, double v, Point3 p) {
   switch (texture->type) {
   case RAYTRACER_TEXTURE_TYPE_SOLID_COLOR: {
@@ -82,6 +115,9 @@ Color texture_value(Texture *texture, double u, double v, Point3 p) {
   }
   case RAYTRACER_TEXTURE_TYPE_CHECKERED: {
     return texture_value_checkered(texture, u, v, p);
+  }
+  case RAYTRACER_TEXTURE_TYPE_IMAGE: {
+    return texture_value_image(texture, u, v, p);
   }
   }
 }

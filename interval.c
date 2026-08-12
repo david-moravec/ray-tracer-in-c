@@ -39,15 +39,19 @@ static inline bool interval_sorrounds(Interval interval, double x) {
   return interval.min < x && x < interval.max;
 }
 
-static inline double interval_clamp_value(Interval interval, double x) {
-  if (x < interval.min) {
-    return interval.min;
+static inline double clamp_value(double min, double max, double x) {
+  if (x < min) {
+    return min;
   }
-  if (x > interval.max) {
-    return interval.max;
+  if (x > max) {
+    return max;
   }
 
   return x;
+}
+
+static inline double interval_clamp_value(Interval interval, double x) {
+  return clamp_value(interval.min, interval.max, x);
 }
 
 static Interval INTERVAL_EMPTY = (Interval){.min = INFINITY, .max = -INFINITY};

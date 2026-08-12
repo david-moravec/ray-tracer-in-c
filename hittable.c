@@ -10,6 +10,7 @@
 #include "interval.c"
 #include "ray.c"
 #include "vec3.c"
+#include <cmath>
 
 struct _Material;
 
@@ -134,6 +135,14 @@ void hit_record_set_face_normal(HitRecord *record, const Ray ray,
       record->front_face ? outward_normal : vec3_negative(outward_normal);
 }
 
+void hittable_transform_to_sphere_coordinates(Point3 p, double *u, double *v) {
+  double theta = acos(-p.y);
+  double phi = atan2(-p.z, p.x) + M_PI;
+
+  *u = phi / (2.0 * M_PI);
+  *v = theta / M_PI;
+}
+
 bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
                          Interval ray_t, HitRecord *record) {
   assert(hittable->type == RAYTRACER_HITTABLE_SPHERE);
@@ -164,6 +173,8 @@ bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
   Vec3 outward_normal = vec3_scalar_devide(
       vec3_subtract(record->p, hittable->center), hittable->r);
   hit_record_set_face_normal(record, ray, outward_normal);
+  hittable_transform_to_sphere_coordinates(outward_normal, &record->u,
+                                           &record->v);
   record->material = hittable->material;
 
   return true;
