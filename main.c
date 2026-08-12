@@ -10,7 +10,7 @@
 #include "material.c"
 #include "texture.c"
 
-int main() {
+void render_sphere_world() {
   Arena *arena = arena_alloc(1 << 30, 0);
   Hittable world = hittable_collection_new(arena);
 
@@ -99,4 +99,59 @@ int main() {
   }
 
   fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
+}
+
+void render_checkered_spheres() {
+  Arena *arena = arena_alloc(1 << 30, 0);
+  Hittable world = hittable_collection_new(arena);
+
+  Texture checkered = texture_checkered_from_colors(
+      0.32, color_new(0.2, 0.3, 0.1), color_new(0.9, 0.9, 0.9), arena);
+
+  Material material_ground = material_lambertian_from_texture(&checkered);
+
+  hittable_list_add(&world, hittable_sphere_new(point3_new(0.0, -10.0, 0.0),
+                                                10.0, &material_ground));
+  hittable_list_add(&world, hittable_sphere_new(point3_new(0.0, 10.0, 0.0),
+                                                10.0, &material_ground));
+
+  Camera camera = {0};
+  camera.aspect_ratio = 16.0 / 9.0;
+  camera.image_width = 400;
+  camera.samples_per_pixel = 100;
+  camera.max_depth = 50;
+
+  camera.vfov = 20;
+  camera.look_from = point3_new(13.0, 2, 3);
+  camera.look_at = point3_new(0.0, 0.0, 0);
+  camera.vup = vec3_new(0.0, 1.0, 0.0);
+
+  camera.focus_dist = 10.0;
+
+  camera_initialize(&camera);
+
+  double start_time = (double)clock() / CLOCKS_PER_SEC;
+  uint32_t pixel_count = camera.image_height * camera.image_width;
+  Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
+  camera_render(&camera, &world, frame_buff);
+  double end_time = (double)clock() / CLOCKS_PER_SEC;
+
+  // print to ppm
+  printf("P3\n%u %u\n255\n", camera.image_width, camera.image_height);
+  for (int i = 0; i < pixel_count; i++) {
+    color_fprint(stdout, frame_buff[i]);
+  }
+
+  fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
+}
+
+int main() {
+  switch (2) {
+  case 1:
+    render_sphere_world();
+    break;
+  case 2:
+    render_checkered_spheres();
+    break;
+  }
 }
