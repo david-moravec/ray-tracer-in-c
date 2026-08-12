@@ -1,12 +1,14 @@
 #ifndef RAYTRACER_MATERIAL_C
 #define RAYTRACER_MATERIAL_C
 
+#include "base/include/arena.h"
 #include "rtcommon.h"
 #include "stdbool.h"
 
 #include "color.c"
 #include "hittable.c"
 #include "ray.c"
+#include "texture.c"
 #include "vec3.c"
 
 typedef enum {
@@ -17,21 +19,32 @@ typedef enum {
 
 typedef struct _Material {
   MaterialType type;
-  Color albedo;
+  union {
+    Color albedo;
+    Texture *texture;
+  };
   double fuzz;
   double refraction_index;
 } Material;
 
-Material material_new_lambertian(Color color) {
-  return (Material){.type = RAYTRACER_MATERIAL_LAMBERTIAN, .albedo = color};
+Material material_lambertian_from_color(Color color, Arena *arena) {
+
+  Texture texture = texture_solid_color_from_color(color);
+  return (Material){.type = RAYTRACER_MATERIAL_LAMBERTIAN,
+                    .texture = ARENA_PUSH_COPY(arena, Texture, &texture)};
 }
 
-Material material_new_metal(Color color, double fuzz) {
+Material material_lambertian_from_texture(Texture *texture) {
+
+  return (Material){.type = RAYTRACER_MATERIAL_LAMBERTIAN, .texture = texture};
+}
+
+Material material_metal_new(Color color, double fuzz) {
   return (Material){
       .type = RAYTRACER_MATERIAL_METAL, .albedo = color, .fuzz = fuzz};
 }
 
-Material material_new_dielectrics(double refraction_index) {
+Material material_dielectrics_new(double refraction_index) {
   return (Material){.type = RAYTRACER_MATERIAL_DIELECTRICS,
                     .refraction_index = refraction_index};
 }
@@ -46,7 +59,7 @@ bool material_scatter_lambertian(Material *material, Ray ray_in,
   }
 
   *scattered = ray_new(record.p, scatter_direction);
-  *attenuation = material->albedo;
+  *attenuation = texture_value(material->texture, record.u, record.v, record.p);
 
   return true;
 }

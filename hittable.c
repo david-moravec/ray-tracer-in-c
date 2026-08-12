@@ -18,6 +18,8 @@ typedef struct {
   Vec3 normal;
   double t;
   struct _Material *material;
+  double u;
+  double v;
   bool front_face;
 } HitRecord;
 
