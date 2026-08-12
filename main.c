@@ -8,13 +8,16 @@
 #include "camera.c"
 #include "hittable.c"
 #include "material.c"
+#include "texture.c"
 
 int main() {
   Arena *arena = arena_alloc(1 << 30, 0);
   Hittable world = hittable_collection_new(arena);
 
-  Material material_ground =
-      material_lambertian_from_color(color_new(0.5, 0.5, 0.5), arena);
+  Texture checkered = texture_checkered_from_colors(
+      0.32, color_new(0.2, 0.3, 0.1), color_new(0.9, 0.9, 0.9), arena);
+
+  Material material_ground = material_lambertian_from_texture(&checkered);
   hittable_list_add(&world, hittable_sphere_new(point3_new(0.0, -1000.0, 0.0),
                                                 1000.0, &material_ground));
 
