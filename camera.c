@@ -171,10 +171,6 @@ void _render(Camera *camera, Hittable *world, Color *frame_buff) {
   fflush(stderr);
 }
 
-void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
-  _render(camera, world, frame_buff);
-}
-
 typedef struct {
   int thread_id;
   int number_of_threads;
@@ -257,6 +253,14 @@ void camera_render_multithread(Camera *camera, Hittable *world,
 
   free(threads);
   free(thread_args);
+}
+
+void camera_render(Camera *camera, Hittable *world, Color *frame_buff) {
+#ifdef MULTITHREAD
+  camera_render_multithread(camera, world, frame_buff);
+#else
+  _render(camera, world, frame_buff);
+#endif
 }
 
 #endif
