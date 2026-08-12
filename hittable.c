@@ -10,7 +10,6 @@
 #include "interval.c"
 #include "ray.c"
 #include "vec3.c"
-#include <cmath>
 
 struct _Material;
 
