@@ -1,3 +1,6 @@
+*.ppm
+*.json
+
 # Prerequisites
 *.d
 
