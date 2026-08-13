@@ -147,7 +147,6 @@ void render_checkered_spheres() {
 
 void render_earth() {
   Arena *arena = arena_alloc(1 << 30, 0);
-  Hittable world = hittable_collection_new(arena);
 
   Texture image = texture_image_new("./images/earthmap.jpg", arena);
 
@@ -185,8 +184,52 @@ void render_earth() {
   fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
 }
 
+void render_perlin() {
+  Arena *arena = arena_alloc(1 << 30, 0);
+  Hittable world = hittable_collection_new(arena);
+
+  Texture noise = texture_noise_new(4.0);
+
+  Material permat = material_lambertian_from_texture(&noise);
+
+  Hittable s1 = hittable_sphere_new(point3_new(0, -1000, 0), 1000, &permat);
+  Hittable s2 = hittable_sphere_new(point3_new(0, 2, 0), 2, &permat);
+
+  hittable_list_add(&world, s1);
+  hittable_list_add(&world, s2);
+
+  Camera camera = {0};
+  camera.aspect_ratio = 16.0 / 9.0;
+  camera.image_width = 400;
+  camera.samples_per_pixel = 100;
+  camera.max_depth = 50;
+
+  camera.vfov = 20;
+  camera.look_from = point3_new(12, 2, 3);
+  camera.look_at = point3_new(0.0, 0.0, 0);
+  camera.vup = vec3_new(0.0, 1.0, 0.0);
+
+  camera.focus_dist = 10.0;
+
+  camera_initialize(&camera);
+
+  double start_time = (double)clock() / CLOCKS_PER_SEC;
+  uint32_t pixel_count = camera.image_height * camera.image_width;
+  Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
+  camera_render(&camera, &world, frame_buff);
+  double end_time = (double)clock() / CLOCKS_PER_SEC;
+
+  // print to ppm
+  printf("P3\n%u %u\n255\n", camera.image_width, camera.image_height);
+  for (int i = 0; i < pixel_count; i++) {
+    color_fprint(stdout, frame_buff[i]);
+  }
+
+  fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
+}
+
 int main() {
-  switch (3) {
+  switch (4) {
   case 1:
     render_sphere_world();
     break;
@@ -195,6 +238,9 @@ int main() {
     break;
   case 3:
     render_earth();
+    break;
+  case 4:
+    render_perlin();
     break;
   }
 }

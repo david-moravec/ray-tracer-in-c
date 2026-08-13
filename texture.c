@@ -4,12 +4,15 @@
 #include "base/include/arena.h"
 #include "color.c"
 #include "interval.c"
+#include "perlin.c"
 #include "rtc_stb_image.h"
+#include "vec3.c"
 
 typedef enum {
   RAYTRACER_TEXTURE_TYPE_SOLID_COLOR,
   RAYTRACER_TEXTURE_TYPE_CHECKERED,
   RAYTRACER_TEXTURE_TYPE_IMAGE,
+  RAYTRACER_TEXTURE_TYPE_NOISE,
 } TextureType;
 
 typedef struct _Texture {
@@ -26,7 +29,14 @@ typedef struct _Texture {
       struct _Texture *odd;
     };
 
+    // Image
     RTCImage *image;
+
+    // Noise
+    struct {
+      Perlin noise;
+      double scale;
+    };
   };
 } Texture;
 
@@ -108,6 +118,21 @@ Color texture_value_image(Texture *texture, double u, double v, Point3 p) {
                    color_scale * pixel[2]);
 }
 
+// Noise
+
+Texture texture_noise_new(double scale) {
+  return (Texture){.type = RAYTRACER_TEXTURE_TYPE_NOISE,
+                   .noise = perlin_new(),
+                   .scale = scale};
+}
+
+Color texture_value_noise(Texture *texture, double u, double v, Point3 p) {
+  return vec3_scalar_multiply(
+      color_new(1, 1, 1),
+      perlin_noise(&texture->noise, vec3_scalar_multiply(p, texture->scale)));
+}
+// Static dispatch
+
 Color texture_value(Texture *texture, double u, double v, Point3 p) {
   switch (texture->type) {
   case RAYTRACER_TEXTURE_TYPE_SOLID_COLOR: {
@@ -118,6 +143,9 @@ Color texture_value(Texture *texture, double u, double v, Point3 p) {
   }
   case RAYTRACER_TEXTURE_TYPE_IMAGE: {
     return texture_value_image(texture, u, v, p);
+  }
+  case RAYTRACER_TEXTURE_TYPE_NOISE: {
+    return texture_value_noise(texture, u, v, p);
   }
   }
 }
