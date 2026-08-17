@@ -8,10 +8,11 @@ enum { _DEFAULT_POINT_COUNT = 256 };
 
 typedef struct {
   int point_count;
-  double random_doubles[_DEFAULT_POINT_COUNT];
+  Vec3 randvec[_DEFAULT_POINT_COUNT];
   int perm_x[_DEFAULT_POINT_COUNT];
   int perm_y[_DEFAULT_POINT_COUNT];
   int perm_z[_DEFAULT_POINT_COUNT];
+
 } Perlin;
 
 static void permute(int *p, int n) {
@@ -31,15 +32,22 @@ static void generate_perm(int *p, int point_count) {
   permute(p, point_count);
 }
 
-static double trilinear_interp(double c[2][2][2], double u, double v,
-                               double w) {
+static double perlin_interp(const Vec3 c[2][2][2], double u, double v,
+                            double w) {
+  double uu = u * u * (3 - 2 * u);
+  double vv = v * v * (3 - 2 * v);
+  double ww = w * w * (3 - 2 * w);
+
   double result = 0.0;
 
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 2; j++) {
       for (int k = 0; k < 2; k++) {
-        result += ((i * u) + (1 - i) * (1 - u)) * (j * v + (1 - j) * (1 - v)) *
-                  (k * w + (1 - k) * (1 - w)) * c[i][j][k];
+        Vec3 weigth_v = vec3_new(u - i, v - j, w - k);
+        result += (i * uu + (1 - i) * (1 - uu)) *
+                  (j * vv + (1 - j) * (1 - vv)) *
+                  (k * ww + (1 - k) * (1 - ww)) *
+                  vec3_dot_product(c[i][j][k], weigth_v);
       }
     }
   }
@@ -51,26 +59,36 @@ double perlin_noise(Perlin *perlin, Point3 p) {
   double v = p.y - floor(p.y);
   double w = p.z - floor(p.z);
 
-  u = u * u * (3 - 2 * u);
-  v = v * v * (3 - 2 * v);
-  w = w * w * (3 - 2 * w);
-
   int i = (int)(floor(p.x));
   int j = (int)(floor(p.y));
   int k = (int)(floor(p.z));
-  double c[2][2][2];
+  Vec3 c[2][2][2];
 
   for (int di = 0; di < 2; di++) {
     for (int dj = 0; dj < 2; dj++) {
       for (int dk = 0; dk < 2; dk++) {
-        c[di][dj][dk] = perlin->random_doubles[perlin->perm_x[(i + di) & 255] ^
-                                               perlin->perm_y[(j + dj) & 255] ^
-                                               perlin->perm_z[(k + dk) & 255]];
+        c[di][dj][dk] = perlin->randvec[perlin->perm_x[(i + di) & 255] ^
+                                        perlin->perm_y[(j + dj) & 255] ^
+                                        perlin->perm_z[(k + dk) & 255]];
       }
     }
   }
 
-  return trilinear_interp(c, u, v, w);
+  return perlin_interp(c, u, v, w);
+}
+
+double perlin_turbulence(Perlin *perlin, Point3 p, int depth) {
+  double result = 0.0;
+  Point3 temp_p = p;
+  double weigth = 1.0;
+
+  for (int i = 0; i < depth; i++) {
+    result += weigth * perlin_noise(perlin, temp_p);
+    weigth *= 0.5;
+    temp_p = vec3_scalar_multiply(temp_p, 2.0);
+  }
+
+  return fabs(result);
 }
 
 Perlin perlin_new() {
@@ -78,7 +96,7 @@ Perlin perlin_new() {
   result.point_count = _DEFAULT_POINT_COUNT;
 
   for (int i = 0; i < result.point_count; i++) {
-    result.random_doubles[i] = random_double();
+    result.randvec[i] = random_unit_vector();
   }
 
   generate_perm(result.perm_x, result.point_count);

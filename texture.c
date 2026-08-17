@@ -127,9 +127,8 @@ Texture texture_noise_new(double scale) {
 }
 
 Color texture_value_noise(Texture *texture, double u, double v, Point3 p) {
-  return vec3_scalar_multiply(
-      color_new(1, 1, 1),
-      perlin_noise(&texture->noise, vec3_scalar_multiply(p, texture->scale)));
+  return vec3_scalar_multiply(color_new(1, 1, 1),
+                              perlin_turbulence(&texture->noise, p, 7.0));
 }
 // Static dispatch
 
