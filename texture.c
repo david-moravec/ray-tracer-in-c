@@ -7,6 +7,7 @@
 #include "perlin.c"
 #include "rtc_stb_image.h"
 #include "vec3.c"
+#include <math.h>
 
 typedef enum {
   RAYTRACER_TEXTURE_TYPE_SOLID_COLOR,
@@ -127,8 +128,10 @@ Texture texture_noise_new(double scale) {
 }
 
 Color texture_value_noise(Texture *texture, double u, double v, Point3 p) {
-  return vec3_scalar_multiply(color_new(1, 1, 1),
-                              perlin_turbulence(&texture->noise, p, 7.0));
+  return vec3_scalar_multiply(
+      color_new(0.5, 0.5, 0.5),
+      (1 + sin((texture->scale * p.z +
+                10 * perlin_turbulence(&texture->noise, p, 7.0)))));
 }
 // Static dispatch
 
