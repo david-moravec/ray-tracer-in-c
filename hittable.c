@@ -155,7 +155,7 @@ void hittable_transform_to_sphere_coordinates(Point3 p, double *u, double *v) {
   *v = theta / M_PI;
 }
 
-bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
+bool hittable_hit_sphere(const Hittable *hittable, const Ray ray,
                          Interval ray_t, HitRecord *record) {
 
 #ifdef DEBUG
@@ -195,7 +195,7 @@ bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
   return true;
 }
 
-bool hittable_list_hit(const Hittable *collection, Ray ray, Interval ray_t,
+bool hittable_hit_list(const Hittable *collection, Ray ray, Interval ray_t,
                        HitRecord *record) {
 #ifdef DEBUG
   assert(hittable->type == RAYTRACER_HITTABLE_LIST);
@@ -222,7 +222,7 @@ bool hittable_list_hit(const Hittable *collection, Ray ray, Interval ray_t,
   return anything_hitted;
 }
 
-bool hittable_bhv_node_hit(const Hittable *hittable, Ray ray, Interval ray_t,
+bool hittable_hit_bhv_node(const Hittable *hittable, Ray ray, Interval ray_t,
                            HitRecord *record) {
   if (!aabb_hit(hittable->bounding_box, ray, ray_t)) {
     return false;
@@ -296,13 +296,13 @@ bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
                   HitRecord *record) {
   switch (hittable->type) {
   case RAYTRACER_HITTABLE_SPHERE:
-    return hittable_sphere_hit(hittable, ray, ray_t, record);
+    return hittable_hit_sphere(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_QUAD:
     return hittable_hit_quad(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_COLLECTION:
-    return hittable_list_hit(hittable, ray, ray_t, record);
+    return hittable_hit_list(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_BHV_NODE:
-    return hittable_bhv_node_hit(hittable, ray, ray_t, record);
+    return hittable_hit_bhv_node(hittable, ray, ray_t, record);
   }
 }
 
