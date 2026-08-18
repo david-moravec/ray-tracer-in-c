@@ -9,6 +9,7 @@
 #include "hittable.c"
 #include "material.c"
 #include "texture.c"
+#include "vec3.c"
 
 void render_sphere_world() {
   Arena *arena = arena_alloc(1 << 30, 0);
@@ -228,8 +229,69 @@ void render_perlin() {
   fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
 }
 
+void render_quad() {
+  Arena *arena = arena_alloc(1 << 30, 0);
+  Hittable world = hittable_collection_new(arena);
+
+  Material left_red =
+      material_lambertian_from_color(color_new(1.0, 0.2, 0.2), arena);
+  Material back_green =
+      material_lambertian_from_color(color_new(0.2, 1.0, 0.2), arena);
+  Material right_blue =
+      material_lambertian_from_color(color_new(0.2, 0.2, 1.0), arena);
+  Material upper_orange =
+      material_lambertian_from_color(color_new(1.0, 0.5, 0.0), arena);
+  Material lower_teal =
+      material_lambertian_from_color(color_new(0.2, 0.8, 0.8), arena);
+
+  hittable_list_add(&world,
+                    hittable_quad_new(point3_new(-3, -2, 5), vec3_new(0, 0, -4),
+                                      vec3_new(0, 4, 0), &left_red));
+  hittable_list_add(&world,
+                    hittable_quad_new(point3_new(-2, -2, 0), vec3_new(4, 0, 0),
+                                      vec3_new(0, 4, 0), &back_green));
+  hittable_list_add(&world,
+                    hittable_quad_new(point3_new(3, -2, 1), vec3_new(0, 0, 4),
+                                      vec3_new(0, 4, 0), &right_blue));
+  hittable_list_add(&world,
+                    hittable_quad_new(point3_new(-2, 3, 1), vec3_new(4, 0, 0),
+                                      vec3_new(0, 0, 4), &upper_orange));
+  hittable_list_add(&world,
+                    hittable_quad_new(point3_new(-2, -3, 5), vec3_new(4, 0, 0),
+                                      vec3_new(0, 0, -4), &lower_teal));
+
+  Camera camera = {0};
+  camera.aspect_ratio = 16.0 / 9.0;
+  camera.image_width = 400;
+  camera.samples_per_pixel = 100;
+  camera.max_depth = 50;
+
+  camera.vfov = 80;
+  camera.look_from = point3_new(0, 0, 9);
+  camera.look_at = point3_new(0.0, 0.0, 0);
+  camera.vup = vec3_new(0.0, 1.0, 0.0);
+
+  camera.focus_dist = 10.0;
+
+  camera_initialize(&camera);
+
+  double start_time = (double)clock() / CLOCKS_PER_SEC;
+  uint32_t pixel_count = camera.image_height * camera.image_width;
+  Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
+  camera_render(&camera, &world, frame_buff);
+  double end_time = (double)clock() / CLOCKS_PER_SEC;
+
+  // print to ppm
+  printf("P3\n%u %u\n255\n", camera.image_width, camera.image_height);
+  for (int i = 0; i < pixel_count; i++) {
+    color_fprint(stdout, frame_buff[i]);
+  }
+
+  fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
+}
+
 int main() {
-  switch (4) {
+  switch (5) {
   case 1:
     render_sphere_world();
     break;
@@ -241,6 +303,9 @@ int main() {
     break;
   case 4:
     render_perlin();
+    break;
+  case 5:
+    render_quad();
     break;
   }
 }

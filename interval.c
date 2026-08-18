@@ -9,6 +9,8 @@ typedef struct {
   double max;
 } Interval;
 
+const Interval UNIT_INTERVAL = (Interval){.min = 0, .max = 1};
+
 static inline Interval interval_new_empty() {
   return (Interval){.min = INFINITY, .max = -INFINITY};
 }
@@ -57,5 +59,15 @@ static inline double interval_clamp_value(Interval interval, double x) {
 static Interval INTERVAL_EMPTY = (Interval){.min = INFINITY, .max = -INFINITY};
 static Interval INTERVAL_UNIVERSE =
     (Interval){.min = -INFINITY, .max = INFINITY};
+
+Interval interval_pad_to_minimum(Interval i) {
+  double delta = 0.00001;
+
+  if (interval_size(i) < delta) {
+    return interval_expand(i, delta);
+  }
+
+  return i;
+}
 
 #endif

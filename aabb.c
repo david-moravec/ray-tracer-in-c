@@ -25,7 +25,9 @@ Aabb aabb_new(Point3 a, Point3 b) {
   Interval y = a.y <= b.y ? interval_new(a.y, b.y) : interval_new(b.y, a.y);
   Interval z = a.z <= b.z ? interval_new(a.z, b.z) : interval_new(b.z, a.z);
 
-  return (Aabb){.x = x, .y = y, .z = z};
+  return (Aabb){.x = interval_pad_to_minimum(x),
+                .y = interval_pad_to_minimum(y),
+                .z = interval_pad_to_minimum(z)};
 }
 
 Aabb aabb_union(Aabb box0, Aabb box1) {
@@ -34,6 +36,13 @@ Aabb aabb_union(Aabb box0, Aabb box1) {
   Interval z = interval_new_enclose(box0.z, box1.z);
 
   return (Aabb){.x = x, .y = y, .z = z};
+}
+
+Aabb aabb_from_diagonals(Point3 q, Vec3 diag0, Vec3 diag1) {
+  Aabb bbox_diag_0 = aabb_new(q, vec3_add(q, vec3_add(diag0, diag1)));
+  Aabb bbox_diag_1 = aabb_new(vec3_add(q, diag0), vec3_add(q, diag1));
+
+  return aabb_union(bbox_diag_0, bbox_diag_1);
 }
 
 bool aabb_hit(Aabb box, Ray ray, Interval ray_t) {

@@ -25,6 +25,7 @@ typedef struct {
 
 typedef enum HittableTypeEnum {
   RAYTRACER_HITTABLE_SPHERE,
+  RAYTRACER_HITTABLE_QUAD,
   RAYTRACER_HITTABLE_COLLECTION,
   RAYTRACER_HITTABLE_BHV_NODE,
 } HittableType;
@@ -35,10 +36,22 @@ typedef List(struct _Hittable) HittableList;
 typedef struct _Hittable {
   HittableType type;
   union {
-    // sphere
     struct {
-      Point3 center;
-      double r;
+      union {
+        // sphere
+        struct {
+          Point3 center;
+          double r;
+        };
+        // quad
+        struct {
+          Point3 q;
+          Vec3 u, v;
+          Vec3 w;
+          Vec3 normal;
+          double d;
+        };
+      };
       struct _Material *material;
     };
 
@@ -144,7 +157,10 @@ void hittable_transform_to_sphere_coordinates(Point3 p, double *u, double *v) {
 
 bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
                          Interval ray_t, HitRecord *record) {
+
+#ifdef DEBUG
   assert(hittable->type == RAYTRACER_HITTABLE_SPHERE);
+#endif
 
   Vec3 origin_to_center = vec3_subtract(hittable->center, ray.origin);
 
@@ -181,6 +197,9 @@ bool hittable_sphere_hit(const Hittable *hittable, const Ray ray,
 
 bool hittable_list_hit(const Hittable *collection, Ray ray, Interval ray_t,
                        HitRecord *record) {
+#ifdef DEBUG
+  assert(hittable->type == RAYTRACER_HITTABLE_LIST);
+#endif
   HitRecord temp_record;
   bool anything_hitted = false;
   double current_closest = ray_t.max;
@@ -217,11 +236,69 @@ bool hittable_bhv_node_hit(const Hittable *hittable, Ray ray, Interval ray_t,
   return hit_left || hit_right;
 }
 
+// quad
+
+Hittable hittable_quad_new(Point3 q, Vec3 u, Vec3 v,
+                           struct _Material *material) {
+  Vec3 n = vec3_cross_product(u, v);
+  Vec3 normal = vec3_unit_vector(n);
+
+  return (Hittable){.type = RAYTRACER_HITTABLE_QUAD,
+                    .q = q,
+                    .u = u,
+                    .v = v,
+                    .w = vec3_scalar_devide(n, vec3_dot_product(n, n)),
+                    .normal = normal,
+                    .d = vec3_dot_product(normal, q),
+                    .material = material,
+                    .bounding_box = aabb_from_diagonals(q, u, v)};
+}
+
+bool hittable_hit_quad(const Hittable *hittable, Ray ray, Interval ray_t,
+                       HitRecord *record) {
+  double denom = vec3_dot_product(hittable->normal, ray.direction);
+
+  if (fabs(denom) < 1e-8) {
+    return false;
+  }
+
+  double t =
+      (hittable->d - vec3_dot_product(hittable->normal, ray.origin)) / denom;
+
+  if (!interval_contains(ray_t, t)) {
+    return false;
+  }
+
+  Point3 intersection = ray_at(ray, t);
+  Vec3 planar_hitpt_vector = vec3_subtract(intersection, hittable->q);
+  double alpha = vec3_dot_product(
+      hittable->w, vec3_cross_product(planar_hitpt_vector, hittable->v));
+  double beta = vec3_dot_product(
+      hittable->w, vec3_cross_product(hittable->u, planar_hitpt_vector));
+
+  if (!interval_contains(UNIT_INTERVAL, alpha) ||
+      !interval_contains(UNIT_INTERVAL, beta)) {
+    return false;
+  }
+
+  record->u = alpha;
+  record->v = beta;
+
+  record->t = t;
+  record->p = intersection;
+  record->material = hittable->material;
+  hit_record_set_face_normal(record, ray, hittable->normal);
+
+  return true;
+}
+
 bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
                   HitRecord *record) {
   switch (hittable->type) {
   case RAYTRACER_HITTABLE_SPHERE:
     return hittable_sphere_hit(hittable, ray, ray_t, record);
+  case RAYTRACER_HITTABLE_QUAD:
+    return hittable_hit_quad(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_COLLECTION:
     return hittable_list_hit(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_BHV_NODE:
