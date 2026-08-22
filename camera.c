@@ -24,6 +24,7 @@ typedef struct {
   u16 image_width;
   u16 samples_per_pixel;
   u16 max_depth;
+  Color background;
 
   double vfov;
   Point3 look_from;
@@ -45,28 +46,29 @@ typedef struct {
   Vec3 defocus_disk_v;
 } Camera;
 
-Color ray_color(const Ray ray, u16 depth, const Hittable *world) {
+Color ray_color(const Ray ray, u16 depth, const Hittable *world,
+                Color background) {
   if (depth == 0) {
     return color_new(0.0, 0.0, 0.0);
   }
   HitRecord record;
-  if (hittable_hit(world, ray, interval_new(0.001, INFINITY), &record)) {
-    Ray scattered = {0};
-    Color attenuation = {0};
-    if (material_scatter(record.material, ray, record, &attenuation,
-                         &scattered)) {
-      return vec3_multiply(attenuation, ray_color(scattered, depth - 1, world));
-    }
-    return (Color){0};
+  if (!hittable_hit(world, ray, interval_new(0.001, INFINITY), &record)) {
+    return background;
+  }
+  Ray scattered = {0};
+  Color attenuation = {0};
+  Color color_from_emission =
+      material_emitted(record.material, record.u, record.v, record.p);
+
+  if (!material_scatter(record.material, ray, record, &attenuation,
+                        &scattered)) {
+    return color_from_emission;
   }
 
-  Vec3 unit_direction = vec3_unit_vector(ray.direction);
-  double a = 0.5 * (unit_direction.y + 1.0);
-  Color blue = color_new(0.6, 0.7, 1.0);
-  Color white = color_new(1.0, 1.0, 1.0);
+  Color color_from_scatter = vec3_multiply(
+      attenuation, ray_color(scattered, depth - 1, world, background));
 
-  return vec3_add(vec3_scalar_multiply(white, (1.0 - a)),
-                  vec3_scalar_multiply(blue, a));
+  return vec3_add(color_from_emission, color_from_scatter);
 }
 
 void camera_initialize(Camera *camera) {
@@ -143,8 +145,8 @@ Color trace_pixel(Camera *camera, int x, int y, Hittable *world) {
   Color pixel_color = {0};
   for (int sample = 0; sample < camera->samples_per_pixel; sample++) {
     Ray ray = get_ray(camera, x, y);
-    pixel_color =
-        vec3_add(pixel_color, ray_color(ray, camera->max_depth, world));
+    pixel_color = vec3_add(pixel_color, ray_color(ray, camera->max_depth, world,
+                                                  camera->background));
   }
   return vec3_scalar_multiply(pixel_color, camera->pixel_samples_scale);
 }

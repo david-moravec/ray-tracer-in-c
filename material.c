@@ -14,7 +14,8 @@
 typedef enum {
   RAYTRACER_MATERIAL_LAMBERTIAN,
   RAYTRACER_MATERIAL_METAL,
-  RAYTRACER_MATERIAL_DIELECTRICS
+  RAYTRACER_MATERIAL_DIELECTRICS,
+  RAYTRACER_MATERIAL_DIFFUSE_LIGHT,
 } MaterialType;
 
 typedef struct _Material {
@@ -108,22 +109,47 @@ bool material_scatter_dielectrics(Material *material, Ray ray_in,
   return true;
 }
 
+// diffuse light
+//
+
+Material material_diffuse_light_new(Color emit, Arena *arena) {
+  Texture text = texture_solid_color_from_color(emit);
+
+  return (Material){.type = RAYTRACER_MATERIAL_DIFFUSE_LIGHT,
+                    .texture = ARENA_PUSH_COPY(arena, Texture, &text)};
+}
+
+static Color diffuse_light_emitted(Material *material, double u, double v,
+                                   Point3 p) {
+  return texture_value(material->texture, u, v, p);
+}
+
 bool material_scatter(Material *material, Ray ray_in, HitRecord record,
                       Color *attenuation, Ray *scattered) {
   switch (material->type) {
-  case RAYTRACER_MATERIAL_LAMBERTIAN: {
+  case RAYTRACER_MATERIAL_LAMBERTIAN:
     return material_scatter_lambertian(material, ray_in, record, attenuation,
                                        scattered);
-  }
-  case RAYTRACER_MATERIAL_METAL: {
+  case RAYTRACER_MATERIAL_METAL:
     return material_scatter_metal(material, ray_in, record, attenuation,
                                   scattered);
-  }
-  case RAYTRACER_MATERIAL_DIELECTRICS: {
+  case RAYTRACER_MATERIAL_DIELECTRICS:
     return material_scatter_dielectrics(material, ray_in, record, attenuation,
                                         scattered);
-  }
+  case RAYTRACER_MATERIAL_DIFFUSE_LIGHT:
+    return false;
   }
 };
+
+Color material_emitted(Material *material, double u, double v, Point3 p) {
+  switch (material->type) {
+  case RAYTRACER_MATERIAL_LAMBERTIAN:
+  case RAYTRACER_MATERIAL_METAL:
+  case RAYTRACER_MATERIAL_DIELECTRICS:
+    return color_new(0, 0, 0);
+  case RAYTRACER_MATERIAL_DIFFUSE_LIGHT:
+    return diffuse_light_emitted(material, u, v, p);
+  }
+}
 
 #endif
