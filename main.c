@@ -384,6 +384,21 @@ void cornell_box() {
                                               vec3_new(555, 0, 0),
                                               vec3_new(0, 555, 0), &white));
 
+  hittable_list_add(&world, hittable_instances_box_new(
+                                point3_new(130, 0, 65),
+                                point3_new(295, 165, 230), &white, arena));
+
+  hittable_list_add(&world, hittable_instances_box_new(
+                                point3_new(265, 0, 295),
+                                point3_new(430, 330, 460), &white, arena));
+
+  Hittable bhv_world = hittable_collection_new(arena);
+  hittable_list_add(&bhv_world,
+                    hittable_bhv_node_new(world.collection, 0,
+                                          world.collection->count, arena));
+
+  world = bhv_world;
+
   Camera camera = {0};
   camera.aspect_ratio = 1.0;
   camera.image_width = 600;
