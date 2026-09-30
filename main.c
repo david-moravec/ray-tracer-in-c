@@ -8,6 +8,7 @@
 
 #include "camera.c"
 #include "hittable.c"
+#include "hittable_instances.c"
 #include "material.c"
 #include "texture.c"
 #include "vec3.c"
@@ -311,6 +312,8 @@ void render_light() {
 
   Material light = material_diffuse_light_new(color_new(4, 4, 4), arena);
   hittable_list_add(&world,
+                    hittable_sphere_new(point3_new(0, 7, 0), 2, &light));
+  hittable_list_add(&world,
                     hittable_quad_new(point3_new(3, 1, -2), vec3_new(2, 0, 0),
                                       vec3_new(0, 2, 0), &light));
 
@@ -345,8 +348,76 @@ void render_light() {
   fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
 }
 
+void cornell_box() {
+  Arena *arena = arena_alloc(1 << 30, 0);
+  Hittable world = hittable_collection_new(arena);
+
+  Texture noise = texture_noise_new(4.0);
+
+  Material permat = material_lambertian_from_texture(&noise);
+
+  Material red =
+      material_lambertian_from_color(color_new(.65, 0.05, 0.05), arena);
+  Material white =
+      material_lambertian_from_color(color_new(0.73, .73, .73), arena);
+  Material green =
+      material_lambertian_from_color(color_new(0.12, 0.45, .15), arena);
+
+  Material light = material_diffuse_light_new(color_new(15, 15, 15), arena);
+
+  hittable_list_add(&world, hittable_quad_new(point3_new(555, 0, 0),
+                                              vec3_new(0, 555, 0),
+                                              vec3_new(0, 0, 555), &green));
+  hittable_list_add(&world,
+                    hittable_quad_new(point3_new(0, 0, 0), vec3_new(0, 555, 0),
+                                      vec3_new(0, 0, 555), &red));
+  hittable_list_add(&world, hittable_quad_new(point3_new(343, 554, 332),
+                                              vec3_new(-130, 0, 0),
+                                              vec3_new(0, 0, -105), &light));
+  hittable_list_add(&world,
+                    hittable_quad_new(point3_new(0, 0, 0), vec3_new(555, 0, 0),
+                                      vec3_new(0, 0, 555), &white));
+  hittable_list_add(&world, hittable_quad_new(point3_new(555, 555, 555),
+                                              vec3_new(-555, 0, 0),
+                                              vec3_new(0, 0, -555), &white));
+  hittable_list_add(&world, hittable_quad_new(point3_new(0, 0, 555),
+                                              vec3_new(555, 0, 0),
+                                              vec3_new(0, 555, 0), &white));
+
+  Camera camera = {0};
+  camera.aspect_ratio = 1.0;
+  camera.image_width = 600;
+  camera.samples_per_pixel = 200;
+  camera.max_depth = 50;
+  camera.background = color_new(0, 0, 0);
+
+  camera.vfov = 40;
+  camera.look_from = point3_new(278, 278, -800);
+  camera.look_at = point3_new(278, 278, 0);
+  camera.vup = vec3_new(0.0, 1.0, 0.0);
+
+  camera.focus_dist = 10.0;
+  camera.defocus_angle = 0.0;
+
+  camera_initialize(&camera);
+
+  double start_time = (double)clock() / CLOCKS_PER_SEC;
+  uint32_t pixel_count = camera.image_height * camera.image_width;
+  Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
+  camera_render(&camera, &world, frame_buff);
+  double end_time = (double)clock() / CLOCKS_PER_SEC;
+
+  // print to ppm
+  printf("P3\n%u %u\n255\n", camera.image_width, camera.image_height);
+  for (int i = 0; i < pixel_count; i++) {
+    color_fprint(stdout, frame_buff[i]);
+  }
+
+  fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
+}
+
 int main() {
-  switch (6) {
+  switch (7) {
   case 1:
     render_sphere_world();
     break;
@@ -364,6 +435,9 @@ int main() {
     break;
   case 6:
     render_light();
+    break;
+  case 7:
+    cornell_box();
     break;
   }
 }
