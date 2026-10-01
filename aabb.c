@@ -102,4 +102,10 @@ int aabb_longest_axis(Aabb bbox) {
   }
 }
 
+Aabb aabb_add_vec3(Aabb box, Vec3 offset) {
+  return (Aabb){.x = interval_add_displacement(box.x, offset.x),
+                .y = interval_add_displacement(box.y, offset.y),
+                .z = interval_add_displacement(box.z, offset.z)};
+}
+
 #endif

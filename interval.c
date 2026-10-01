@@ -56,6 +56,11 @@ static inline double interval_clamp_value(Interval interval, double x) {
   return clamp_value(interval.min, interval.max, x);
 }
 
+static inline Interval interval_add_displacement(Interval interval,
+                                                 double displacement) {
+  return interval_new(interval.min + displacement, interval.max + displacement);
+}
+
 static Interval INTERVAL_EMPTY = (Interval){.min = INFINITY, .max = -INFINITY};
 static Interval INTERVAL_UNIVERSE =
     (Interval){.min = -INFINITY, .max = INFINITY};

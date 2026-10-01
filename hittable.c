@@ -28,6 +28,7 @@ typedef enum HittableTypeEnum {
   RAYTRACER_HITTABLE_QUAD,
   RAYTRACER_HITTABLE_COLLECTION,
   RAYTRACER_HITTABLE_BHV_NODE,
+  RAYTRACER_HITTABLE_TRANSLATE,
 } HittableType;
 
 struct _Hittable;
@@ -62,6 +63,12 @@ typedef struct _Hittable {
     struct {
       struct _Hittable *left;
       struct _Hittable *right;
+    };
+
+    // tranlsate;
+    struct {
+      struct _Hittable *object;
+      Vec3 offset;
     };
   };
   Aabb bounding_box;
@@ -292,6 +299,32 @@ bool hittable_hit_quad(const Hittable *hittable, Ray ray, Interval ray_t,
   return true;
 }
 
+// translate
+//
+
+Hittable hittable_translate_new(Hittable *object, Vec3 offset) {
+
+  return (Hittable){.type = RAYTRACER_HITTABLE_TRANSLATE,
+                    .object = object,
+                    .offset = offset,
+                    .bounding_box =
+                        aabb_add_vec3(object->bounding_box, offset)};
+}
+
+bool hittable_hit_translate(const Hittable *hittable, Ray ray, Interval ray_t,
+                            HitRecord *record) {
+  Ray offset_r =
+      ray_new(vec3_subtract(ray.origin, hittable->offset), ray.direction);
+
+  if (!hittable_hit(hittable->object, offset_r, ray_t, record)) {
+    return false;
+  }
+
+  record->p = vec3_add(record->p, hittable->offset);
+
+  return true;
+}
+
 bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
                   HitRecord *record) {
   switch (hittable->type) {
@@ -303,6 +336,8 @@ bool hittable_hit(const Hittable *hittable, Ray ray, Interval ray_t,
     return hittable_hit_list(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_BHV_NODE:
     return hittable_hit_bhv_node(hittable, ray, ray_t, record);
+  case RAYTRACER_HITTABLE_TRANSLATE:
+    return hittable_hit_translate(hittable, ray, ray_t, record);
   }
 }
 
