@@ -46,8 +46,9 @@ typedef struct {
   Vec3 defocus_disk_v;
 } Camera;
 
-Color ray_color(const Ray ray, u16 depth, const Hittable *world,
-                Color background) {
+Color ray_color(
+    const Ray ray, u16 depth, const Hittable *world, Color background
+) {
   if (depth == 0) {
     return color_new(0.0, 0.0, 0.0);
   }
@@ -60,13 +61,15 @@ Color ray_color(const Ray ray, u16 depth, const Hittable *world,
   Color color_from_emission =
       material_emitted(record.material, record.u, record.v, record.p);
 
-  if (!material_scatter(record.material, ray, record, &attenuation,
-                        &scattered)) {
+  if (!material_scatter(
+          record.material, ray, record, &attenuation, &scattered
+      )) {
     return color_from_emission;
   }
 
   Color color_from_scatter = vec3_multiply(
-      attenuation, ray_color(scattered, depth - 1, world, background));
+      attenuation, ray_color(scattered, depth - 1, world, background)
+  );
 
   return vec3_add(color_from_emission, color_from_scatter);
 }
@@ -98,15 +101,19 @@ void camera_initialize(Camera *camera) {
   camera->pixel_delta_v = vec3_scalar_devide(viewport_v, image_height);
 
   Vec3 viewport_center = vec3_subtract(
-      camera->center, vec3_scalar_multiply(camera->w, camera->focus_dist));
+      camera->center, vec3_scalar_multiply(camera->w, camera->focus_dist)
+  );
 
-  Vec3 upper_left_offset = vec3_add(vec3_scalar_devide(viewport_u, 2),
-                                    vec3_scalar_devide(viewport_v, 2));
+  Vec3 upper_left_offset = vec3_add(
+      vec3_scalar_devide(viewport_u, 2), vec3_scalar_devide(viewport_v, 2)
+  );
   Vec3 viewport_upper_left = vec3_subtract(viewport_center, upper_left_offset);
   camera->top_left_pixel_loc = vec3_add(
       viewport_upper_left,
       vec3_scalar_multiply(
-          vec3_add(camera->pixel_delta_u, camera->pixel_delta_v), 0.5));
+          vec3_add(camera->pixel_delta_u, camera->pixel_delta_v), 0.5
+      )
+  );
 
   double defocus_radius =
       camera->focus_dist * tan(deg_to_rad(camera->defocus_angle / 2.0));
@@ -121,16 +128,21 @@ Vec3 sample_square() {
 static inline Point3 defocus_disk_sample(Camera *camera) {
   Vec3 p = vec3_random_in_unit_disk();
 
-  return vec3_add(camera->center,
-                  vec3_add(vec3_scalar_multiply(camera->defocus_disk_u, p.x),
-                           vec3_scalar_multiply(camera->defocus_disk_v, p.y)));
+  return vec3_add(
+      camera->center,
+      vec3_add(
+          vec3_scalar_multiply(camera->defocus_disk_u, p.x),
+          vec3_scalar_multiply(camera->defocus_disk_v, p.y)
+      )
+  );
 }
 
 Ray get_ray(Camera *camera, u16 i, u16 j) {
   Vec3 offset = sample_square();
-  Vec3 pixel_offset =
-      vec3_add(vec3_scalar_multiply(camera->pixel_delta_u, i + offset.x),
-               vec3_scalar_multiply(camera->pixel_delta_v, j + offset.y));
+  Vec3 pixel_offset = vec3_add(
+      vec3_scalar_multiply(camera->pixel_delta_u, i + offset.x),
+      vec3_scalar_multiply(camera->pixel_delta_v, j + offset.y)
+  );
 
   Vec3 pixel_sample = vec3_add(camera->top_left_pixel_loc, pixel_offset);
 
@@ -145,8 +157,10 @@ Color trace_pixel(Camera *camera, int x, int y, Hittable *world) {
   Color pixel_color = {0};
   for (int sample = 0; sample < camera->samples_per_pixel; sample++) {
     Ray ray = get_ray(camera, x, y);
-    pixel_color = vec3_add(pixel_color, ray_color(ray, camera->max_depth, world,
-                                                  camera->background));
+    pixel_color = vec3_add(
+        pixel_color,
+        ray_color(ray, camera->max_depth, world, camera->background)
+    );
   }
   return vec3_scalar_multiply(pixel_color, camera->pixel_samples_scale);
 }
@@ -199,8 +213,9 @@ DWORD WINAPI _render_multithread(LPVOID param) {
   return 0;
 }
 
-void camera_render_multithread(Camera *camera, Hittable *world,
-                               Color *frame_buff) {
+void camera_render_multithread(
+    Camera *camera, Hittable *world, Color *frame_buff
+) {
 
   size_t size_of_thread_args = sizeof(ThreadArgs);
   int number_of_threads = multithreading_number_of_threads();
@@ -216,12 +231,14 @@ void camera_render_multithread(Camera *camera, Hittable *world,
   int total_rows = camera->image_height;
 
   for (int i = 0; i < number_of_threads; i++) {
-    thread_args[i] = (ThreadArgs){.thread_id = i,
-                                  .number_of_threads = number_of_threads,
-                                  .camera = camera,
-                                  .world = world,
-                                  .frame_buff = frame_buff,
-                                  .rows_done = &rows_done};
+    thread_args[i] = (ThreadArgs){
+        .thread_id = i,
+        .number_of_threads = number_of_threads,
+        .camera = camera,
+        .world = world,
+        .frame_buff = frame_buff,
+        .rows_done = &rows_done
+    };
 
     threads[i] =
         CreateThread(NULL, 0, _render_multithread, &thread_args[i], 0, NULL);
@@ -239,8 +256,11 @@ void camera_render_multithread(Camera *camera, Hittable *world,
   do {
     wait_result = WaitForMultipleObjects(number_of_threads, threads, TRUE, 250);
     LONG done = InterlockedCompareExchange(&rows_done, 0, 0);
-    fprintf(stderr, "\rScanlines reamining: %-6ld",
-            (camera->image_height - rows_done));
+    fprintf(
+        stderr,
+        "\rScanlines reamining: %-6ld",
+        (camera->image_height - rows_done)
+    );
     fflush(stderr);
   } while (wait_result == WAIT_TIMEOUT);
   fprintf(stderr, "\n");

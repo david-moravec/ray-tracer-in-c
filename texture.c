@@ -50,34 +50,41 @@ Texture texture_solid_color_from_color(Color color) {
 }
 
 Texture texture_solid_color_from_rgb(double red, double green, double blue) {
-  return (Texture){.type = RAYTRACER_TEXTURE_TYPE_SOLID_COLOR,
-                   .albedo = color_new(red, green, blue)};
+  return (Texture){
+      .type = RAYTRACER_TEXTURE_TYPE_SOLID_COLOR,
+      .albedo = color_new(red, green, blue)
+  };
 }
 
-Color texture_value_solid_color(Texture *texture, double u, double v,
-                                Point3 p) {
+Color texture_value_solid_color(
+    Texture *texture, double u, double v, Point3 p
+) {
   return texture->albedo;
 }
 
 // Checkered
 
-Texture texture_checkered_from_textures(double scale, Texture *even,
-                                        Texture *odd) {
-  return (Texture){.type = RAYTRACER_TEXTURE_TYPE_CHECKERED,
-                   .inv_scale = (1.0 / scale),
-                   .even = even,
-                   .odd = odd};
+Texture
+texture_checkered_from_textures(double scale, Texture *even, Texture *odd) {
+  return (Texture){
+      .type = RAYTRACER_TEXTURE_TYPE_CHECKERED,
+      .inv_scale = (1.0 / scale),
+      .even = even,
+      .odd = odd
+  };
 }
 
-Texture texture_checkered_from_colors(double scale, Color c1, Color c2,
-                                      Arena *arena) {
+Texture
+texture_checkered_from_colors(double scale, Color c1, Color c2, Arena *arena) {
   Texture solid_c1 = texture_solid_color_from_color(c1);
   Texture solid_c2 = texture_solid_color_from_color(c2);
 
-  return (Texture){.type = RAYTRACER_TEXTURE_TYPE_CHECKERED,
-                   .inv_scale = (1.0 / scale),
-                   .even = ARENA_PUSH_COPY(arena, Texture, &solid_c1),
-                   .odd = ARENA_PUSH_COPY(arena, Texture, &solid_c2)};
+  return (Texture){
+      .type = RAYTRACER_TEXTURE_TYPE_CHECKERED,
+      .inv_scale = (1.0 / scale),
+      .even = ARENA_PUSH_COPY(arena, Texture, &solid_c1),
+      .odd = ARENA_PUSH_COPY(arena, Texture, &solid_c2)
+  };
 }
 
 Color texture_value_checkered(Texture *texture, double u, double v, Point3 p) {
@@ -96,8 +103,10 @@ Color texture_value_checkered(Texture *texture, double u, double v, Point3 p) {
 Texture texture_image_new(const char *path, Arena *arena) {
   RTCImage image = rtc_image_new(path, arena);
 
-  return (Texture){.type = RAYTRACER_TEXTURE_TYPE_IMAGE,
-                   .image = ARENA_PUSH_COPY(arena, RTCImage, &image)};
+  return (Texture){
+      .type = RAYTRACER_TEXTURE_TYPE_IMAGE,
+      .image = ARENA_PUSH_COPY(arena, RTCImage, &image)
+  };
 }
 
 Color texture_value_image(Texture *texture, double u, double v, Point3 p) {
@@ -115,23 +124,29 @@ Color texture_value_image(Texture *texture, double u, double v, Point3 p) {
 
   double color_scale = 1.0 / 255.0;
 
-  return color_new(color_scale * pixel[0], color_scale * pixel[1],
-                   color_scale * pixel[2]);
+  return color_new(
+      color_scale * pixel[0], color_scale * pixel[1], color_scale * pixel[2]
+  );
 }
 
 // Noise
 
 Texture texture_noise_new(double scale) {
-  return (Texture){.type = RAYTRACER_TEXTURE_TYPE_NOISE,
-                   .noise = perlin_new(),
-                   .scale = scale};
+  return (Texture){
+      .type = RAYTRACER_TEXTURE_TYPE_NOISE,
+      .noise = perlin_new(),
+      .scale = scale
+  };
 }
 
 Color texture_value_noise(Texture *texture, double u, double v, Point3 p) {
   return vec3_scalar_multiply(
       color_new(0.5, 0.5, 0.5),
-      (1 + sin((texture->scale * p.z +
-                10 * perlin_turbulence(&texture->noise, p, 7.0)))));
+      (1 + sin(
+               (texture->scale * p.z +
+                10 * perlin_turbulence(&texture->noise, p, 7.0))
+           ))
+  );
 }
 // Static dispatch
 

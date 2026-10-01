@@ -22,7 +22,9 @@ int multithreading_number_of_threads() {
 
 void multithreading_block_devide_work(
     do_work_callback_type do_work_callback,
-    fill_args_callback_type fill_args_callback, int size_of_thread_args) {
+    fill_args_callback_type fill_args_callback,
+    int size_of_thread_args
+) {
   int number_of_threads = multithreading_number_of_threads();
   HANDLE *threads = (HANDLE *)malloc(number_of_threads);
   char *thread_args = (char *)malloc(number_of_threads * size_of_thread_args);
@@ -34,8 +36,14 @@ void multithreading_block_devide_work(
   for (int i = 0; i < number_of_threads; i++) {
     fill_args_callback(i, &thread_args[i * size_of_thread_args]);
 
-    threads[i] = CreateThread(NULL, 0, do_work_callback,
-                              &thread_args[i * size_of_thread_args], 0, NULL);
+    threads[i] = CreateThread(
+        NULL,
+        0,
+        do_work_callback,
+        &thread_args[i * size_of_thread_args],
+        0,
+        NULL
+    );
 
     if (threads[i] == NULL) {
       fprintf(stderr, "Failed to create thread %d/n", i);

@@ -53,8 +53,8 @@ static int clamp(int i, int low, int high) {
   return high - 1;
 }
 
-static const unsigned char *rtc_image_pixel_data(RTCImage *image, int x,
-                                                 int y) {
+static const unsigned char *
+rtc_image_pixel_data(RTCImage *image, int x, int y) {
   if (image->bdata == NULL) {
     return MAGENTA;
   }
@@ -66,11 +66,12 @@ static const unsigned char *rtc_image_pixel_data(RTCImage *image, int x,
          x * image->bytes_per_pixel;
 }
 
-static bool rtc_image_load(RTCImage *image, const char *image_path,
-                           Arena *arena) {
+static bool
+rtc_image_load(RTCImage *image, const char *image_path, Arena *arena) {
   int n = image->bytes_per_pixel;
-  image->fdata = stbi_loadf(image_path, &image->width, &image->height, &n,
-                            image->bytes_per_pixel);
+  image->fdata = stbi_loadf(
+      image_path, &image->width, &image->height, &n, image->bytes_per_pixel
+  );
   if (image->fdata == NULL) {
     return false;
   }

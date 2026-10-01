@@ -18,11 +18,16 @@ void render_sphere_world() {
   Hittable world = hittable_collection_new(arena);
 
   Texture checkered = texture_checkered_from_colors(
-      0.32, color_new(0.2, 0.3, 0.1), color_new(0.9, 0.9, 0.9), arena);
+      0.32, color_new(0.2, 0.3, 0.1), color_new(0.9, 0.9, 0.9), arena
+  );
 
   Material material_ground = material_lambertian_from_texture(&checkered);
-  hittable_list_add(&world, hittable_sphere_new(point3_new(0.0, -1000.0, 0.0),
-                                                1000.0, &material_ground));
+  hittable_list_add(
+      &world,
+      hittable_sphere_new(
+          point3_new(0.0, -1000.0, 0.0), 1000.0, &material_ground
+      )
+  );
 
   for (int a = -11; a < 11; a++) {
     for (int b = -11; b < 11; b++) {
@@ -46,30 +51,36 @@ void render_sphere_world() {
         }
 
         hittable_list_add(
-            &world, hittable_sphere_new(
-                        center, 0.2,
-                        ARENA_PUSH_COPY(arena, Material, &sphere_material)));
+            &world,
+            hittable_sphere_new(
+                center, 0.2, ARENA_PUSH_COPY(arena, Material, &sphere_material)
+            )
+        );
       }
     }
   }
 
   Material material_1 = material_dielectrics_new(1.50);
   hittable_list_add(
-      &world, hittable_sphere_new(point3_new(0.0, 1.0, 0), 1, &material_1));
+      &world, hittable_sphere_new(point3_new(0.0, 1.0, 0), 1, &material_1)
+  );
 
   Material material_2 =
       material_lambertian_from_color(color_new(0.4, 0.2, 0.1), arena);
   hittable_list_add(
-      &world, hittable_sphere_new(point3_new(-4.0, 1, 0.0), 1.0, &material_2));
+      &world, hittable_sphere_new(point3_new(-4.0, 1, 0.0), 1.0, &material_2)
+  );
 
   Material material_3 = material_metal_new(color_new(0.7, 0.6, 0.5), 0.0);
   hittable_list_add(
-      &world, hittable_sphere_new(point3_new(4.0, 1.0, 0.0), 1.0, &material_3));
+      &world, hittable_sphere_new(point3_new(4.0, 1.0, 0.0), 1.0, &material_3)
+  );
 
   Hittable bhv_world = hittable_collection_new(arena);
-  hittable_list_add(&bhv_world,
-                    hittable_bhv_node_new(world.collection, 0,
-                                          world.collection->count, arena));
+  hittable_list_add(
+      &bhv_world,
+      hittable_bhv_node_new(world.collection, 0, world.collection->count, arena)
+  );
 
   world = bhv_world;
 
@@ -110,14 +121,19 @@ void render_checkered_spheres() {
   Hittable world = hittable_collection_new(arena);
 
   Texture checkered = texture_checkered_from_colors(
-      0.32, color_new(0.2, 0.3, 0.1), color_new(0.9, 0.9, 0.9), arena);
+      0.32, color_new(0.2, 0.3, 0.1), color_new(0.9, 0.9, 0.9), arena
+  );
 
   Material material_ground = material_lambertian_from_texture(&checkered);
 
-  hittable_list_add(&world, hittable_sphere_new(point3_new(0.0, -10.0, 0.0),
-                                                10.0, &material_ground));
-  hittable_list_add(&world, hittable_sphere_new(point3_new(0.0, 10.0, 0.0),
-                                                10.0, &material_ground));
+  hittable_list_add(
+      &world,
+      hittable_sphere_new(point3_new(0.0, -10.0, 0.0), 10.0, &material_ground)
+  );
+  hittable_list_add(
+      &world,
+      hittable_sphere_new(point3_new(0.0, 10.0, 0.0), 10.0, &material_ground)
+  );
 
   Camera camera = {0};
   camera.aspect_ratio = 16.0 / 9.0;
@@ -250,21 +266,51 @@ void render_quad() {
   Material lower_teal =
       material_lambertian_from_color(color_new(0.2, 0.8, 0.8), arena);
 
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(-3, -2, 5), vec3_new(0, 0, -4),
-                                      vec3_new(0, 4, 0), &left_red));
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(-2, -2, 0), vec3_new(4, 0, 0),
-                                      vec3_new(0, 4, 0), &back_green));
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(3, -2, 1), vec3_new(0, 0, 4),
-                                      vec3_new(0, 4, 0), &right_blue));
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(-2, 3, 1), vec3_new(4, 0, 0),
-                                      vec3_new(0, 0, 4), &upper_orange));
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(-2, -3, 5), vec3_new(4, 0, 0),
-                                      vec3_new(0, 0, -4), &lower_teal));
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(-3, -2, 5),
+          vec3_new(0, 0, -4),
+          vec3_new(0, 4, 0),
+          &left_red
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(-2, -2, 0),
+          vec3_new(4, 0, 0),
+          vec3_new(0, 4, 0),
+          &back_green
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(3, -2, 1),
+          vec3_new(0, 0, 4),
+          vec3_new(0, 4, 0),
+          &right_blue
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(-2, 3, 1),
+          vec3_new(4, 0, 0),
+          vec3_new(0, 0, 4),
+          &upper_orange
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(-2, -3, 5),
+          vec3_new(4, 0, 0),
+          vec3_new(0, 0, -4),
+          &lower_teal
+      )
+  );
 
   Camera camera = {0};
   camera.aspect_ratio = 16.0 / 9.0;
@@ -311,11 +357,15 @@ void render_light() {
   hittable_list_add(&world, s2);
 
   Material light = material_diffuse_light_new(color_new(4, 4, 4), arena);
-  hittable_list_add(&world,
-                    hittable_sphere_new(point3_new(0, 7, 0), 2, &light));
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(3, 1, -2), vec3_new(2, 0, 0),
-                                      vec3_new(0, 2, 0), &light));
+  hittable_list_add(
+      &world, hittable_sphere_new(point3_new(0, 7, 0), 2, &light)
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(3, 1, -2), vec3_new(2, 0, 0), vec3_new(0, 2, 0), &light
+      )
+  );
 
   Camera camera = {0};
   camera.aspect_ratio = 16.0 / 9.0;
@@ -365,37 +415,74 @@ void cornell_box() {
 
   Material light = material_diffuse_light_new(color_new(15, 15, 15), arena);
 
-  hittable_list_add(&world, hittable_quad_new(point3_new(555, 0, 0),
-                                              vec3_new(0, 555, 0),
-                                              vec3_new(0, 0, 555), &green));
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(0, 0, 0), vec3_new(0, 555, 0),
-                                      vec3_new(0, 0, 555), &red));
-  hittable_list_add(&world, hittable_quad_new(point3_new(343, 554, 332),
-                                              vec3_new(-130, 0, 0),
-                                              vec3_new(0, 0, -105), &light));
-  hittable_list_add(&world,
-                    hittable_quad_new(point3_new(0, 0, 0), vec3_new(555, 0, 0),
-                                      vec3_new(0, 0, 555), &white));
-  hittable_list_add(&world, hittable_quad_new(point3_new(555, 555, 555),
-                                              vec3_new(-555, 0, 0),
-                                              vec3_new(0, 0, -555), &white));
-  hittable_list_add(&world, hittable_quad_new(point3_new(0, 0, 555),
-                                              vec3_new(555, 0, 0),
-                                              vec3_new(0, 555, 0), &white));
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(555, 0, 0),
+          vec3_new(0, 555, 0),
+          vec3_new(0, 0, 555),
+          &green
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(0, 0, 0), vec3_new(0, 555, 0), vec3_new(0, 0, 555), &red
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(343, 554, 332),
+          vec3_new(-130, 0, 0),
+          vec3_new(0, 0, -105),
+          &light
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(0, 0, 0), vec3_new(555, 0, 0), vec3_new(0, 0, 555), &white
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(555, 555, 555),
+          vec3_new(-555, 0, 0),
+          vec3_new(0, 0, -555),
+          &white
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(0, 0, 555),
+          vec3_new(555, 0, 0),
+          vec3_new(0, 555, 0),
+          &white
+      )
+  );
 
-  hittable_list_add(&world, hittable_instances_box_new(
-                                point3_new(130, 0, 65),
-                                point3_new(295, 165, 230), &white, arena));
+  hittable_list_add(
+      &world,
+      hittable_instances_box_new(
+          point3_new(130, 0, 65), point3_new(295, 165, 230), &white, arena
+      )
+  );
 
-  hittable_list_add(&world, hittable_instances_box_new(
-                                point3_new(265, 0, 295),
-                                point3_new(430, 330, 460), &white, arena));
+  hittable_list_add(
+      &world,
+      hittable_instances_box_new(
+          point3_new(265, 0, 295), point3_new(430, 330, 460), &white, arena
+      )
+  );
 
   Hittable bhv_world = hittable_collection_new(arena);
-  hittable_list_add(&bhv_world,
-                    hittable_bhv_node_new(world.collection, 0,
-                                          world.collection->count, arena));
+  hittable_list_add(
+      &bhv_world,
+      hittable_bhv_node_new(world.collection, 0, world.collection->count, arena)
+  );
 
   world = bhv_world;
 
