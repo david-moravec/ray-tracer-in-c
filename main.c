@@ -464,19 +464,26 @@ void cornell_box() {
       )
   );
 
-  hittable_list_add(
-      &world,
-      hittable_instances_box_new(
-          point3_new(130, 0, 65), point3_new(295, 165, 230), &white, arena
-      )
+  Hittable box1 = hittable_instances_box_new(
+      point3_new(0, 0, 0), point3_new(165, 330, 165), &white, arena
   );
+  Hittable box1_rot = hittable_rotate_y_new(&box1, 15);
+  Hittable box1_rot_trans =
+      hittable_translate_new(&box1_rot, vec3_new(265, 0, 295));
 
   hittable_list_add(
-      &world,
-      hittable_instances_box_new(
-          point3_new(265, 0, 295), point3_new(430, 330, 460), &white, arena
-      )
+      &world, box1_rot_trans
+
   );
+
+  Hittable box2 = hittable_instances_box_new(
+      point3_new(0, 0, 0), point3_new(165, 165, 165), &white, arena
+  );
+  Hittable box2_rot = hittable_rotate_y_new(&box2, -18);
+  Hittable box2_rot_trans =
+      hittable_translate_new(&box2_rot, vec3_new(130, 0, 65));
+
+  hittable_list_add(&world, box2_rot_trans);
 
   Hittable bhv_world = hittable_collection_new(arena);
   hittable_list_add(
