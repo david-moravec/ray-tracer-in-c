@@ -9,7 +9,9 @@
 #include "aabb.c"
 #include "interval.c"
 #include "ray.c"
+#include "rtcommon.h"
 #include "vec3.c"
+#include <math.h>
 
 struct _Material;
 
@@ -66,11 +68,20 @@ typedef struct _Hittable {
       struct _Hittable *right;
     };
 
-    // tranlsate;
     struct {
       struct _Hittable *object;
-      Vec3 offset;
+      union {
+        // tranlsate;
+        Vec3 offset;
+        // rotate;
+        struct {
+          double sin_theta;
+          double cos_theta;
+        };
+      };
     };
+
+    // rotation;
   };
   Aabb bounding_box;
 } Hittable;
@@ -351,6 +362,85 @@ bool hittable_hit_translate(
   return true;
 }
 
+// rotate
+
+Hittable hittable_rotate_y_new(Hittable *object, double angle) {
+  double radians = deg_to_rad(angle);
+  double sin_theta = sin(radians);
+  double cos_theta = cos(radians);
+  Aabb bounding_box = object->bounding_box;
+
+  Point3 min = point3_new(INFINITY, INFINITY, INFINITY);
+  Point3 max = point3_new(-INFINITY, -INFINITY, -INFINITY);
+
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
+      for (int k = 0; k < 2; k++) {
+        double x = i * bounding_box.x.max + (1 - i) * bounding_box.x.min;
+        double y = j * bounding_box.y.max + (1 - j) * bounding_box.y.min;
+        double z = k * bounding_box.z.max + (1 - k) * bounding_box.z.min;
+
+        double new_x = cos_theta * x + sin_theta * z;
+        double new_z = -sin_theta * x + cos_theta * z;
+
+        Vec3 tester = vec3_new(new_x, y, new_z);
+
+        for (int c = 0; c < 3; c++) {
+          min.e[c] = fmin(min.e[c], tester.e[c]);
+          max.e[c] = fmax(max.e[c], tester.e[c]);
+        }
+      }
+    }
+  }
+
+  return (Hittable){
+      .type = RAYTRACER_HITTABLE_ROTATE_Y,
+      .object = object,
+      .cos_theta = cos_theta,
+      .sin_theta = sin_theta,
+      .bounding_box = aabb_new(min, max)
+  };
+}
+bool hittable_hit_rotate_y(
+    const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
+) {
+  double sin_theta = hittable->sin_theta;
+  double cos_theta = hittable->cos_theta;
+
+  Point3 origin = point3_new(
+      (cos_theta * ray.origin.x) - (sin_theta * ray.origin.z),
+      ray.origin.y,
+      (sin_theta * ray.origin.x) + (cos_theta * ray.origin.z)
+  );
+
+  Vec3 direction = vec3_new(
+      (cos_theta * ray.direction.x) - (sin_theta * ray.direction.z),
+      ray.direction.y,
+      (sin_theta * ray.direction.x) + (cos_theta * ray.direction.z)
+
+  );
+
+  Ray rotated_r = ray_new(origin, direction);
+
+  if (!hittable_hit(hittable->object, rotated_r, ray_t, record)) {
+    return false;
+  }
+
+  record->p = point3_new(
+      (cos_theta * record->p.x) + (sin_theta * record->p.z),
+      record->p.y,
+      (-sin_theta * record->p.x) + (cos_theta * record->p.z)
+  );
+
+  record->normal = vec3_new(
+      (cos_theta * record->normal.x) + (sin_theta * record->normal.z),
+      record->normal.y,
+      (-sin_theta * record->normal.x) + (cos_theta * record->normal.z)
+  );
+
+  return true;
+}
+
 bool hittable_hit(
     const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
 ) {
@@ -365,6 +455,8 @@ bool hittable_hit(
     return hittable_hit_bhv_node(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_TRANSLATE:
     return hittable_hit_translate(hittable, ray, ray_t, record);
+  case RAYTRACER_HITTABLE_ROTATE_Y:
+    return hittable_hit_rotate_y(hittable, ray, ray_t, record);
   }
 }
 
