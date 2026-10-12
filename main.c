@@ -525,8 +525,147 @@ void cornell_box() {
   fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
 }
 
+void cornell_smoke() {
+  Arena *arena = arena_alloc(1 << 30, 0);
+  Hittable world = hittable_collection_new(arena);
+
+  Texture noise = texture_noise_new(4.0);
+
+  Material permat = material_lambertian_from_texture(&noise);
+
+  Material red =
+      material_lambertian_from_color(color_new(.65, 0.05, 0.05), arena);
+  Material white =
+      material_lambertian_from_color(color_new(0.73, .73, .73), arena);
+  Material green =
+      material_lambertian_from_color(color_new(0.12, 0.45, .15), arena);
+
+  Material light = material_diffuse_light_new(color_new(7, 7, 7), arena);
+
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(555, 0, 0),
+          vec3_new(0, 555, 0),
+          vec3_new(0, 0, 555),
+          &green
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(0, 0, 0), vec3_new(0, 555, 0), vec3_new(0, 0, 555), &red
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(113, 554, 127),
+          vec3_new(330, 0, 0),
+          vec3_new(0, 0, 305),
+          &light
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(0, 0, 0), vec3_new(555, 0, 0), vec3_new(0, 0, 555), &white
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(555, 555, 555),
+          vec3_new(-555, 0, 0),
+          vec3_new(0, 0, -555),
+          &white
+      )
+  );
+  hittable_list_add(
+      &world,
+      hittable_quad_new(
+          point3_new(0, 0, 555),
+          vec3_new(555, 0, 0),
+          vec3_new(0, 555, 0),
+          &white
+      )
+  );
+
+  Hittable box1 = hittable_instances_box_new(
+      point3_new(0, 0, 0), point3_new(165, 330, 165), &white, arena
+  );
+  Hittable box1_rot = hittable_rotate_y_new(&box1, 15);
+  Hittable box1_rot_trans =
+      hittable_translate_new(&box1_rot, vec3_new(265, 0, 295));
+  Hittable box1_rot_trans_smoke = hittable_constant_medium_from_color(
+      &box1_rot_trans, 0.01, color_new(0, 0, 0), arena
+  );
+
+  hittable_list_add(
+      &world, box1_rot_trans_smoke
+
+  );
+
+  Hittable box2 = hittable_instances_box_new(
+      point3_new(0, 0, 0), point3_new(165, 165, 165), &white, arena
+  );
+  Hittable box2_rot = hittable_rotate_y_new(&box2, -18);
+  Hittable box2_rot_trans =
+      hittable_translate_new(&box2_rot, vec3_new(130, 0, 65));
+
+  Hittable box2_rot_trans_smoke = hittable_constant_medium_from_color(
+      &box2_rot_trans, 0.01, color_new(1, 1, 1), arena
+  );
+
+  hittable_list_add(
+      &world, box2_rot_trans_smoke
+
+  );
+
+  hittable_list_add(&world, box2_rot_trans_smoke);
+
+  Hittable bhv_world = hittable_collection_new(arena);
+  hittable_list_add(
+      &bhv_world,
+      hittable_bhv_node_new(world.collection, 0, world.collection->count, arena)
+  );
+
+  world = bhv_world;
+
+  Camera camera = {0};
+  camera.aspect_ratio = 1.0;
+  camera.image_width = 600;
+  camera.samples_per_pixel = 200;
+  camera.max_depth = 50;
+  camera.background = color_new(0, 0, 0);
+
+  camera.vfov = 40;
+  camera.look_from = point3_new(278, 278, -800);
+  camera.look_at = point3_new(278, 278, 0);
+  camera.vup = vec3_new(0.0, 1.0, 0.0);
+
+  camera.focus_dist = 10.0;
+  camera.defocus_angle = 0.0;
+
+  camera_initialize(&camera);
+
+  double start_time = (double)clock() / CLOCKS_PER_SEC;
+  uint32_t pixel_count = camera.image_height * camera.image_width;
+  Color *frame_buff = (Color *)arena_push(arena, pixel_count * sizeof(Color));
+  camera_render(&camera, &world, frame_buff);
+  double end_time = (double)clock() / CLOCKS_PER_SEC;
+
+  // print to ppm
+  printf("P3\n%u %u\n255\n", camera.image_width, camera.image_height);
+  for (int i = 0; i < pixel_count; i++) {
+    color_fprint(stdout, frame_buff[i]);
+  }
+
+  fprintf(stderr, "Elapsed time: %f\n", end_time - start_time);
+}
+
 int main() {
-  switch (7) {
+  switch (8) {
   case 1:
     render_sphere_world();
     break;
@@ -547,6 +686,9 @@ int main() {
     break;
   case 7:
     cornell_box();
+    break;
+  case 8:
+    cornell_smoke();
     break;
   }
 }

@@ -32,6 +32,7 @@ typedef enum HittableTypeEnum {
   RAYTRACER_HITTABLE_BHV_NODE,
   RAYTRACER_HITTABLE_TRANSLATE,
   RAYTRACER_HITTABLE_ROTATE_Y,
+  RAYTRACER_HITTABLE_CONSTANT_MEDIUM,
 } HittableType;
 
 struct _Hittable;
@@ -57,6 +58,12 @@ typedef struct _Hittable {
         };
       };
       struct _Material *material;
+      // constant medium
+      struct {
+        const struct _Hittable *boundary;
+        double neg_inv_density;
+        struct _Material *phase_function;
+      };
     };
 
     // list
@@ -68,6 +75,7 @@ typedef struct _Hittable {
       struct _Hittable *right;
     };
 
+    // translate / rotate
     struct {
       struct _Hittable *object;
       union {
@@ -80,8 +88,6 @@ typedef struct _Hittable {
         };
       };
     };
-
-    // rotation;
   };
   Aabb bounding_box;
 } Hittable;
@@ -441,6 +447,89 @@ bool hittable_hit_rotate_y(
   return true;
 }
 
+// constant medium
+//
+
+struct _Texture;
+struct _Color;
+
+struct _Material *
+material_isotropic_from_texture(struct _Texture *tex, Arena *arena);
+struct _Material *material_isotropic_from_color(Vec3 color, Arena *arena);
+
+Hittable hittable_constant_medium_from_texture(
+    const Hittable *boundary, double density, struct _Texture *tex, Arena *arena
+) {
+  return (Hittable){
+      .type = RAYTRACER_HITTABLE_CONSTANT_MEDIUM,
+      .boundary = boundary,
+      .neg_inv_density = -1.0 / density,
+      .phase_function = material_isotropic_from_texture(tex, arena),
+      .bounding_box = boundary->bounding_box,
+  };
+}
+
+Hittable hittable_constant_medium_from_color(
+    const Hittable *boundary, double density, Vec3 color, Arena *arena
+) {
+  return (Hittable){
+      .type = RAYTRACER_HITTABLE_CONSTANT_MEDIUM,
+      .boundary = boundary,
+      .neg_inv_density = -1.0 / density,
+      .phase_function = material_isotropic_from_color(color, arena),
+      .bounding_box = boundary->bounding_box,
+  };
+}
+
+bool hittable_hit_constant_medium(
+    const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
+) {
+  HitRecord rec1, rec2;
+
+  if (!hittable_hit(hittable->boundary, ray, INTERVAL_UNIVERSE, &rec1)) {
+    return false;
+  }
+
+  if (!hittable_hit(
+          hittable->boundary,
+          ray,
+          interval_new(rec1.t + 0.0001, INFINITY),
+          &rec2
+      )) {
+    return false;
+  }
+
+  if (rec1.t < ray_t.min) {
+    rec1.t = ray_t.min;
+  }
+  if (rec2.t > ray_t.max) {
+    rec2.t = ray_t.max;
+  }
+  if (rec1.t >= rec2.t) {
+    return false;
+  }
+  if (rec1.t < 0) {
+    rec1.t = 0;
+  }
+
+  double ray_length = vec3_length(ray.direction);
+  double distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
+  double hit_distance = hittable->neg_inv_density * log(random_double());
+
+  if (hit_distance > distance_inside_boundary) {
+    return false;
+  }
+
+  record->t = rec1.t + hit_distance / ray_length;
+  record->p = ray_at(ray, record->t);
+
+  record->normal = vec3_new(1, 0, 0);
+  record->front_face = true;
+  record->material = hittable->phase_function;
+
+  return true;
+}
+
 bool hittable_hit(
     const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
 ) {
@@ -449,6 +538,8 @@ bool hittable_hit(
     return hittable_hit_sphere(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_QUAD:
     return hittable_hit_quad(hittable, ray, ray_t, record);
+  case RAYTRACER_HITTABLE_CONSTANT_MEDIUM:
+    return hittable_hit_constant_medium(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_COLLECTION:
     return hittable_hit_list(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_BHV_NODE:

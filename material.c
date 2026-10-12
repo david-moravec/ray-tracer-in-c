@@ -16,6 +16,7 @@ typedef enum {
   RAYTRACER_MATERIAL_METAL,
   RAYTRACER_MATERIAL_DIELECTRICS,
   RAYTRACER_MATERIAL_DIFFUSE_LIGHT,
+  RAYTRACER_MATERIAL_ISOTROPIC,
 } MaterialType;
 
 typedef struct _Material {
@@ -145,6 +146,43 @@ diffuse_light_emitted(Material *material, double u, double v, Point3 p) {
   return texture_value(material->texture, u, v, p);
 }
 
+// isotropic
+//
+
+Material *material_isotropic_from_color(Vec3 color, Arena *arena) {
+  Texture text = texture_solid_color_from_color(color);
+
+  Material material = (Material){
+      .type = RAYTRACER_MATERIAL_ISOTROPIC,
+      .texture = ARENA_PUSH_COPY(arena, Texture, &text)
+  };
+
+  return ARENA_PUSH_COPY(arena, Material, &material);
+};
+
+struct _Material *
+material_isotropic_from_texture(Texture *texture, Arena *arena) {
+  Material material = (Material){
+      .type = RAYTRACER_MATERIAL_ISOTROPIC,
+      .texture = texture,
+  };
+
+  return ARENA_PUSH_COPY(arena, Material, &material);
+};
+
+bool material_scatter_isotropic(
+    Material *material,
+    Ray ray_in,
+    HitRecord record,
+    Color *attenuation,
+    Ray *scattered
+) {
+  *scattered = ray_new(record.p, random_unit_vector());
+  *attenuation = texture_value(material->texture, record.u, record.v, record.p);
+
+  return true;
+}
+
 bool material_scatter(
     Material *material,
     Ray ray_in,
@@ -165,6 +203,10 @@ bool material_scatter(
     return material_scatter_dielectrics(
         material, ray_in, record, attenuation, scattered
     );
+  case RAYTRACER_MATERIAL_ISOTROPIC:
+    return material_scatter_isotropic(
+        material, ray_in, record, attenuation, scattered
+    );
   case RAYTRACER_MATERIAL_DIFFUSE_LIGHT:
     return false;
   }
@@ -174,6 +216,7 @@ Color material_emitted(Material *material, double u, double v, Point3 p) {
   switch (material->type) {
   case RAYTRACER_MATERIAL_LAMBERTIAN:
   case RAYTRACER_MATERIAL_METAL:
+  case RAYTRACER_MATERIAL_ISOTROPIC:
   case RAYTRACER_MATERIAL_DIELECTRICS:
     return color_new(0, 0, 0);
   case RAYTRACER_MATERIAL_DIFFUSE_LIGHT:
