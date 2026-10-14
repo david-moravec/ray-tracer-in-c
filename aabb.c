@@ -15,9 +15,11 @@ typedef struct {
 } Aabb;
 
 Aabb aabb_new_empty() {
-  return (Aabb){.x = interval_new_empty(),
-                .y = interval_new_empty(),
-                .z = interval_new_empty()};
+  return (Aabb){
+      .x = interval_new_empty(),
+      .y = interval_new_empty(),
+      .z = interval_new_empty()
+  };
 }
 
 Aabb aabb_new(Point3 a, Point3 b) {
@@ -25,9 +27,11 @@ Aabb aabb_new(Point3 a, Point3 b) {
   Interval y = a.y <= b.y ? interval_new(a.y, b.y) : interval_new(b.y, a.y);
   Interval z = a.z <= b.z ? interval_new(a.z, b.z) : interval_new(b.z, a.z);
 
-  return (Aabb){.x = interval_pad_to_minimum(x),
-                .y = interval_pad_to_minimum(y),
-                .z = interval_pad_to_minimum(z)};
+  return (Aabb){
+      .x = interval_pad_to_minimum(x),
+      .y = interval_pad_to_minimum(y),
+      .z = interval_pad_to_minimum(z)
+  };
 }
 
 Aabb aabb_union(Aabb box0, Aabb box1) {
@@ -43,6 +47,21 @@ Aabb aabb_from_diagonals(Point3 q, Vec3 diag0, Vec3 diag1) {
   Aabb bbox_diag_1 = aabb_new(vec3_add(q, diag0), vec3_add(q, diag1));
 
   return aabb_union(bbox_diag_0, bbox_diag_1);
+}
+
+Aabb aabb_from_triangle(Point3 a, Point3 b, Point3 c) {
+  Point3 min = point3_new(
+      fmin(a.x, fmin(b.x, c.x)),
+      fmin(a.y, fmin(b.y, c.y)),
+      fmin(a.z, fmin(b.z, c.z))
+  );
+  Point3 max = point3_new(
+      fmax(a.x, fmax(b.x, c.x)),
+      fmax(a.y, fmax(b.y, c.y)),
+      fmax(a.z, fmax(b.z, c.z))
+  );
+
+  return aabb_new(min, max);
 }
 
 bool aabb_hit(Aabb box, Ray ray, Interval ray_t) {
@@ -103,9 +122,11 @@ int aabb_longest_axis(Aabb bbox) {
 }
 
 Aabb aabb_add_vec3(Aabb box, Vec3 offset) {
-  return (Aabb){.x = interval_add_displacement(box.x, offset.x),
-                .y = interval_add_displacement(box.y, offset.y),
-                .z = interval_add_displacement(box.z, offset.z)};
+  return (Aabb){
+      .x = interval_add_displacement(box.x, offset.x),
+      .y = interval_add_displacement(box.y, offset.y),
+      .z = interval_add_displacement(box.z, offset.z)
+  };
 }
 
 #endif

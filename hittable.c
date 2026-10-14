@@ -28,6 +28,7 @@ typedef struct {
 typedef enum HittableTypeEnum {
   RAYTRACER_HITTABLE_SPHERE,
   RAYTRACER_HITTABLE_QUAD,
+  RAYTRACER_HITTABLE_TRIANGLE,
   RAYTRACER_HITTABLE_COLLECTION,
   RAYTRACER_HITTABLE_BHV_NODE,
   RAYTRACER_HITTABLE_TRANSLATE,
@@ -50,6 +51,21 @@ typedef struct {
   Vec3 normal;
   double d;
 } Quad;
+
+typedef struct {
+  union {
+    Point3 p[3];
+    struct {
+      Point3 a;
+      Point3 b;
+      Point3 c;
+    };
+  };
+  double D;
+  Vec3 u, v;
+  Vec3 w;
+  Vec3 normal;
+} Triangle;
 
 typedef struct {
   struct _Hittable *left;
@@ -88,6 +104,7 @@ typedef struct _Hittable {
   union {
     Sphere sphere;
     Quad quad;
+    Triangle triangle;
     Transformation transormation;
     HittableList *collection;
     BhvNode bhv_node;
@@ -353,6 +370,89 @@ bool hittable_hit_quad(
   return true;
 }
 
+// triangle
+
+Hittable hittable_triangle_new(
+    Point3 a, Point3 b, Point3 c, struct _Material *material
+) {
+  Vec3 u, v, n;
+  u = vec3_from_points(a, b);
+  v = vec3_from_points(a, c);
+  n = vec3_cross_product(u, v);
+
+  Vec3 normal = vec3_unit_vector(n);
+  Vec3 w = vec3_scalar_devide(n, vec3_dot_product(n, n));
+
+  Aabb bounding_box = aabb_from_triangle(a, b, c);
+
+  return (Hittable){
+      .type = RAYTRACER_HITTABLE_TRIANGLE,
+      .as.triangle =
+          (Triangle){
+              .a = a,
+              .b = b,
+              .c = c,
+              .u = u,
+              .v = v,
+              .w = w,
+              .normal = normal,
+              .D = vec3_dot_product(normal, a),
+          },
+      .material = material,
+      .bounding_box = bounding_box
+  };
+}
+
+bool hittable_hit_triangle(
+    const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
+) {
+  double denom = vec3_dot_product(hittable->as.triangle.normal, ray.direction);
+
+  if (fabs(denom) < 1e-8) {
+    return false;
+  }
+
+  double t = (hittable->as.triangle.D -
+              vec3_dot_product(hittable->as.triangle.normal, ray.origin)) /
+             denom;
+
+  if (!interval_contains(ray_t, t)) {
+    return false;
+  }
+
+  Point3 intersection = ray_at(ray, t);
+  Vec3 planar_hitpt_vector =
+      vec3_subtract(intersection, hittable->as.triangle.a);
+  double alpha = vec3_dot_product(
+      hittable->as.triangle.w,
+      vec3_cross_product(planar_hitpt_vector, hittable->as.triangle.v)
+  );
+  double beta = vec3_dot_product(
+      hittable->as.triangle.w,
+      vec3_cross_product(hittable->as.triangle.u, planar_hitpt_vector)
+  );
+
+  if (!interval_contains(UNIT_INTERVAL, alpha) ||
+      !interval_contains(UNIT_INTERVAL, beta)) {
+    return false;
+  }
+
+  // // this will constrain the allowed alpha and beta to triangle
+  if (alpha + beta > 1.0) {
+    return false;
+  }
+
+  record->u = alpha;
+  record->v = beta;
+
+  record->t = t;
+  record->p = intersection;
+  record->material = hittable->material;
+  hit_record_set_face_normal(record, ray, hittable->as.quad.normal);
+
+  return true;
+}
+
 // translate
 
 Hittable hittable_translate_new(Hittable *object, Vec3 offset) {
@@ -573,6 +673,8 @@ bool hittable_hit(
     return hittable_hit_sphere(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_QUAD:
     return hittable_hit_quad(hittable, ray, ray_t, record);
+  case RAYTRACER_HITTABLE_TRIANGLE:
+    return hittable_hit_triangle(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_CONSTANT_MEDIUM:
     return hittable_hit_constant_medium(hittable, ray, ray_t, record);
   case RAYTRACER_HITTABLE_COLLECTION:

@@ -56,8 +56,8 @@ static inline double interval_clamp_value(Interval interval, double x) {
   return clamp_value(interval.min, interval.max, x);
 }
 
-static inline Interval interval_add_displacement(Interval interval,
-                                                 double displacement) {
+static inline Interval
+interval_add_displacement(Interval interval, double displacement) {
   return interval_new(interval.min + displacement, interval.max + displacement);
 }
 

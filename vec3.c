@@ -163,6 +163,10 @@ static inline Vec3 vec3_new(double x, double y, double z) {
   return (Vec3){.x = x, .y = y, .z = z};
 }
 
+static inline Vec3 vec3_from_points(Point3 a, Point3 b) {
+  return (Vec3){.x = b.x - a.x, .y = b.y - a.y, .z = b.z - a.z};
+}
+
 static inline Point3 point3_new(double x, double y, double z) {
   return vec3_new(x, y, z);
 }
