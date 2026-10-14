@@ -38,58 +38,61 @@ typedef enum HittableTypeEnum {
 struct _Hittable;
 typedef List(struct _Hittable) HittableList;
 
+typedef struct {
+  Point3 center;
+  double r;
+} Sphere;
+
+typedef struct {
+  Point3 q;
+  Vec3 u, v;
+  Vec3 w;
+  Vec3 normal;
+  double d;
+} Quad;
+
+typedef struct {
+  struct _Hittable *left;
+  struct _Hittable *right;
+} BhvNode;
+
+typedef struct {
+  Vec3 offset;
+} Translate;
+
+typedef struct {
+  double sin_theta;
+  double cos_theta;
+} Rotate_Y;
+
+typedef struct {
+  struct _Hittable *object;
+
+  union {
+    Rotate_Y rotate_y;
+    Translate translate;
+  };
+} Transformation;
+
+typedef struct {
+  const struct _Hittable *boundary;
+  double neg_inv_density;
+  struct _Material *phase_function;
+} ConstantMedium;
+
 typedef struct _Hittable {
   HittableType type;
-  union {
-    struct {
-      union {
-        // sphere
-        struct {
-          Point3 center;
-          double r;
-        };
-        // quad
-        struct {
-          Point3 q;
-          Vec3 u, v;
-          Vec3 w;
-          Vec3 normal;
-          double d;
-        };
-      };
-      struct _Material *material;
-      // constant medium
-      struct {
-        const struct _Hittable *boundary;
-        double neg_inv_density;
-        struct _Material *phase_function;
-      };
-    };
-
-    // list
-    HittableList *collection;
-
-    // bhv_node;
-    struct {
-      struct _Hittable *left;
-      struct _Hittable *right;
-    };
-
-    // translate / rotate
-    struct {
-      struct _Hittable *object;
-      union {
-        // tranlsate;
-        Vec3 offset;
-        // rotate;
-        struct {
-          double sin_theta;
-          double cos_theta;
-        };
-      };
-    };
-  };
   Aabb bounding_box;
+  struct _Material *material;
+
+  union {
+    Sphere sphere;
+    Quad quad;
+    Transformation transormation;
+    HittableList *collection;
+    BhvNode bhv_node;
+    ConstantMedium constant_medium;
+  } as;
 } Hittable;
 
 bool hittable_hit(
@@ -97,7 +100,7 @@ bool hittable_hit(
 );
 
 void hittable_list_add(Hittable *list, Hittable hittable) {
-  list_push(list->collection, hittable);
+  list_push(list->as.collection, hittable);
   list->bounding_box = aabb_union(list->bounding_box, hittable.bounding_box);
 }
 
@@ -106,7 +109,7 @@ Hittable hittable_collection_new(Arena *arena) {
   list_init(list, arena);
   Hittable result = (Hittable){
       .type = RAYTRACER_HITTABLE_COLLECTION,
-      .collection = list,
+      .as.collection = list,
       .bounding_box = aabb_new_empty()
   };
 
@@ -119,8 +122,8 @@ hittable_sphere_new(Point3 center, double radius, struct _Material *material) {
 
   return (Hittable){
       .type = RAYTRACER_HITTABLE_SPHERE,
-      .center = center,
-      .r = radius,
+      .as.sphere.center = center,
+      .as.sphere.r = radius,
       .material = material,
       .bounding_box =
           aabb_new(vec3_subtract(center, rvec), vec3_add(center, rvec))
@@ -130,7 +133,7 @@ hittable_sphere_new(Point3 center, double radius, struct _Material *material) {
 Hittable hittable_bhv_node_new(
     HittableList *hittables, size_t start, size_t end, Arena *arena
 ) {
-  Hittable bhv_node = (Hittable){.type = RAYTRACER_HITTABLE_BHV_NODE};
+  BhvNode bhv_node;
 
   Aabb bbox = aabb_new_empty();
 
@@ -163,9 +166,11 @@ Hittable hittable_bhv_node_new(
     bhv_node.right = arena_push_copy(arena, sizeof(Hittable), &right);
   }
 
-  bhv_node.bounding_box = bbox;
-
-  return bhv_node;
+  return (Hittable){
+      .type = RAYTRACER_HITTABLE_BHV_NODE,
+      .bounding_box = bbox,
+      .as.bhv_node = bhv_node
+  };
 }
 
 void hit_record_set_face_normal(
@@ -195,11 +200,13 @@ bool hittable_hit_sphere(
   assert(hittable->type == RAYTRACER_HITTABLE_SPHERE);
 #endif
 
-  Vec3 origin_to_center = vec3_subtract(hittable->center, ray.origin);
+  Sphere sphere = hittable->as.sphere;
+
+  Vec3 origin_to_center = vec3_subtract(sphere.center, ray.origin);
 
   double a = vec3_length_squared(ray.direction);
   double h = vec3_dot_product(ray.direction, origin_to_center);
-  double c = vec3_length_squared(origin_to_center) - hittable->r * hittable->r;
+  double c = vec3_length_squared(origin_to_center) - sphere.r * sphere.r;
   double discriminant = h * h - a * c;
 
   if (discriminant < 0) {
@@ -218,9 +225,8 @@ bool hittable_hit_sphere(
 
   record->t = root;
   record->p = ray_at(ray, root);
-  Vec3 outward_normal = vec3_scalar_devide(
-      vec3_subtract(record->p, hittable->center), hittable->r
-  );
+  Vec3 outward_normal =
+      vec3_scalar_devide(vec3_subtract(record->p, sphere.center), sphere.r);
   hit_record_set_face_normal(record, ray, outward_normal);
   hittable_transform_to_sphere_coordinates(
       outward_normal, &record->u, &record->v
@@ -231,7 +237,7 @@ bool hittable_hit_sphere(
 }
 
 bool hittable_hit_list(
-    const Hittable *collection, Ray ray, Interval ray_t, HitRecord *record
+    const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
 ) {
 #ifdef DEBUG
   assert(hittable->type == RAYTRACER_HITTABLE_LIST);
@@ -240,7 +246,7 @@ bool hittable_hit_list(
   bool anything_hitted = false;
   double current_closest = ray_t.max;
 
-  HittableList *list = collection->collection;
+  HittableList *list = hittable->as.collection;
 
   size_t index = 0;
 
@@ -269,9 +275,9 @@ bool hittable_hit_bhv_node(
     return false;
   }
 
-  bool hit_left = hittable_hit(hittable->left, ray, ray_t, record);
+  bool hit_left = hittable_hit(hittable->as.bhv_node.left, ray, ray_t, record);
   bool hit_right = hittable_hit(
-      hittable->right,
+      hittable->as.bhv_node.right,
       ray,
       interval_new(ray_t.min, hit_left ? record->t : ray_t.max),
       record
@@ -289,40 +295,46 @@ hittable_quad_new(Point3 q, Vec3 u, Vec3 v, struct _Material *material) {
 
   return (Hittable){
       .type = RAYTRACER_HITTABLE_QUAD,
-      .q = q,
-      .u = u,
-      .v = v,
-      .w = vec3_scalar_devide(n, vec3_dot_product(n, n)),
-      .normal = normal,
-      .d = vec3_dot_product(normal, q),
       .material = material,
-      .bounding_box = aabb_from_diagonals(q, u, v)
+      .bounding_box = aabb_from_diagonals(q, u, v),
+      .as.quad = (Quad){
+          .q = q,
+          .u = u,
+          .v = v,
+          .w = vec3_scalar_devide(n, vec3_dot_product(n, n)),
+          .normal = normal,
+          .d = vec3_dot_product(normal, q),
+
+      }
   };
 }
 
 bool hittable_hit_quad(
     const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
 ) {
-  double denom = vec3_dot_product(hittable->normal, ray.direction);
+  double denom = vec3_dot_product(hittable->as.quad.normal, ray.direction);
 
   if (fabs(denom) < 1e-8) {
     return false;
   }
 
-  double t =
-      (hittable->d - vec3_dot_product(hittable->normal, ray.origin)) / denom;
+  double t = (hittable->as.quad.d -
+              vec3_dot_product(hittable->as.quad.normal, ray.origin)) /
+             denom;
 
   if (!interval_contains(ray_t, t)) {
     return false;
   }
 
   Point3 intersection = ray_at(ray, t);
-  Vec3 planar_hitpt_vector = vec3_subtract(intersection, hittable->q);
+  Vec3 planar_hitpt_vector = vec3_subtract(intersection, hittable->as.quad.q);
   double alpha = vec3_dot_product(
-      hittable->w, vec3_cross_product(planar_hitpt_vector, hittable->v)
+      hittable->as.quad.w,
+      vec3_cross_product(planar_hitpt_vector, hittable->as.quad.v)
   );
   double beta = vec3_dot_product(
-      hittable->w, vec3_cross_product(hittable->u, planar_hitpt_vector)
+      hittable->as.quad.w,
+      vec3_cross_product(hittable->as.quad.u, planar_hitpt_vector)
   );
 
   if (!interval_contains(UNIT_INTERVAL, alpha) ||
@@ -336,7 +348,7 @@ bool hittable_hit_quad(
   record->t = t;
   record->p = intersection;
   record->material = hittable->material;
-  hit_record_set_face_normal(record, ray, hittable->normal);
+  hit_record_set_face_normal(record, ray, hittable->as.quad.normal);
 
   return true;
 }
@@ -347,23 +359,30 @@ Hittable hittable_translate_new(Hittable *object, Vec3 offset) {
 
   return (Hittable){
       .type = RAYTRACER_HITTABLE_TRANSLATE,
-      .object = object,
-      .offset = offset,
-      .bounding_box = aabb_add_vec3(object->bounding_box, offset)
+      .bounding_box = aabb_add_vec3(object->bounding_box, offset),
+      .as.transormation = (Transformation){
+          .object = object,
+          .translate.offset = offset,
+      }
+
   };
 }
 
 bool hittable_hit_translate(
     const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
 ) {
-  Ray offset_r =
-      ray_new(vec3_subtract(ray.origin, hittable->offset), ray.direction);
+  Ray offset_r = ray_new(
+      vec3_subtract(ray.origin, hittable->as.transormation.translate.offset),
+      ray.direction
+  );
 
-  if (!hittable_hit(hittable->object, offset_r, ray_t, record)) {
+  if (!hittable_hit(
+          hittable->as.transormation.object, offset_r, ray_t, record
+      )) {
     return false;
   }
 
-  record->p = vec3_add(record->p, hittable->offset);
+  record->p = vec3_add(record->p, hittable->as.transormation.translate.offset);
 
   return true;
 }
@@ -401,17 +420,22 @@ Hittable hittable_rotate_y_new(Hittable *object, double angle) {
 
   return (Hittable){
       .type = RAYTRACER_HITTABLE_ROTATE_Y,
-      .object = object,
-      .cos_theta = cos_theta,
-      .sin_theta = sin_theta,
-      .bounding_box = aabb_new(min, max)
+      .bounding_box = aabb_new(min, max),
+      .as.transormation = (Transformation){
+          .object = object,
+          .rotate_y = (Rotate_Y){
+              .cos_theta = cos_theta,
+              .sin_theta = sin_theta,
+
+          }
+      }
   };
 }
 bool hittable_hit_rotate_y(
     const Hittable *hittable, Ray ray, Interval ray_t, HitRecord *record
 ) {
-  double sin_theta = hittable->sin_theta;
-  double cos_theta = hittable->cos_theta;
+  double sin_theta = hittable->as.transormation.rotate_y.sin_theta;
+  double cos_theta = hittable->as.transormation.rotate_y.cos_theta;
 
   Point3 origin = point3_new(
       (cos_theta * ray.origin.x) - (sin_theta * ray.origin.z),
@@ -428,7 +452,9 @@ bool hittable_hit_rotate_y(
 
   Ray rotated_r = ray_new(origin, direction);
 
-  if (!hittable_hit(hittable->object, rotated_r, ray_t, record)) {
+  if (!hittable_hit(
+          hittable->as.transormation.object, rotated_r, ray_t, record
+      )) {
     return false;
   }
 
@@ -462,9 +488,12 @@ Hittable hittable_constant_medium_from_texture(
 ) {
   return (Hittable){
       .type = RAYTRACER_HITTABLE_CONSTANT_MEDIUM,
-      .boundary = boundary,
-      .neg_inv_density = -1.0 / density,
-      .phase_function = material_isotropic_from_texture(tex, arena),
+      .as.constant_medium =
+          (ConstantMedium){
+              .boundary = boundary,
+              .neg_inv_density = -1.0 / density,
+              .phase_function = material_isotropic_from_texture(tex, arena),
+          },
       .bounding_box = boundary->bounding_box,
   };
 }
@@ -474,9 +503,12 @@ Hittable hittable_constant_medium_from_color(
 ) {
   return (Hittable){
       .type = RAYTRACER_HITTABLE_CONSTANT_MEDIUM,
-      .boundary = boundary,
-      .neg_inv_density = -1.0 / density,
-      .phase_function = material_isotropic_from_color(color, arena),
+      .as.constant_medium =
+          (ConstantMedium){
+              .boundary = boundary,
+              .neg_inv_density = -1.0 / density,
+              .phase_function = material_isotropic_from_color(color, arena),
+          },
       .bounding_box = boundary->bounding_box,
   };
 }
@@ -486,12 +518,14 @@ bool hittable_hit_constant_medium(
 ) {
   HitRecord rec1, rec2;
 
-  if (!hittable_hit(hittable->boundary, ray, INTERVAL_UNIVERSE, &rec1)) {
+  if (!hittable_hit(
+          hittable->as.constant_medium.boundary, ray, INTERVAL_UNIVERSE, &rec1
+      )) {
     return false;
   }
 
   if (!hittable_hit(
-          hittable->boundary,
+          hittable->as.constant_medium.boundary,
           ray,
           interval_new(rec1.t + 0.0001, INFINITY),
           &rec2
@@ -514,7 +548,8 @@ bool hittable_hit_constant_medium(
 
   double ray_length = vec3_length(ray.direction);
   double distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
-  double hit_distance = hittable->neg_inv_density * log(random_double());
+  double hit_distance =
+      hittable->as.constant_medium.neg_inv_density * log(random_double());
 
   if (hit_distance > distance_inside_boundary) {
     return false;
@@ -525,7 +560,7 @@ bool hittable_hit_constant_medium(
 
   record->normal = vec3_new(1, 0, 0);
   record->front_face = true;
-  record->material = hittable->phase_function;
+  record->material = hittable->as.constant_medium.phase_function;
 
   return true;
 }
