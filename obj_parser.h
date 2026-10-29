@@ -56,8 +56,8 @@ static inline Vertex parse_vertex_line(char *current) {
   return result;
 }
 
-static inline void parse_face_line(char *current, ParsedObj *result,
-                                   Arena *arena) {
+static inline void
+parse_face_line(char *current, ParsedObj *result, Arena *arena) {
   Face face = {0};
   list_init(&face.indices, arena);
 
@@ -84,8 +84,6 @@ static inline void parse_face_line(char *current, ParsedObj *result,
     }
     cursor = end;
 
-    // OBJ indices are one based. Zero is invalid and negative indices are
-    // relative to the vertices parsed so far.
     long vertex_index = obj_index;
     if (obj_index < 0) {
       vertex_index = (long)result->vertices.count + obj_index;
@@ -119,8 +117,8 @@ static inline ParsedObj parse_obj_file(char *data, Arena *arena) {
   char *current_line = data;
   while (*current_line != '\0') {
     char *next_line = strchr(current_line, '\n');
-    size_t len = next_line ? (size_t)(next_line - current_line)
-                           : strlen(current_line);
+    size_t len =
+        next_line ? (size_t)(next_line - current_line) : strlen(current_line);
 
     char line[len + 1];
     memcpy(line, current_line, len);
